@@ -286,6 +286,23 @@ class TestFetchVerify(Base):
         self.assertEqual(code, 0)
         self.assertIn("1 added, 1 removed, 1 changed", out)
 
+    def test_text_output_is_ascii(self):
+        # Redirected stdout on Windows uses the ANSI code page, so non-ASCII
+        # characters would be written in the wrong encoding (or fail).
+        rel1, _ = self.simple_db(version="1")
+        rel2, _ = self.simple_db(version="2", members={"toy/a.txt": b"alpha2\n", "toy/c.txt": b"new"})
+        self.write_recipe("toy", [rel2, rel1])
+        for version in ("1", "2"):
+            self.run_cli("add", f"toy@{version}")
+            self.assertEqual(self.run_cli("fetch")[0], 0)
+        code, out, _ = self.run_cli("provenance")
+        self.assertEqual(code, 0)
+        self.assertTrue(out.isascii(), out)
+        code, out, _ = self.run_cli("diff", "toy", "1", "2", "--limit", "0")
+        self.assertEqual(code, 0)
+        self.assertIn("1 more", out)
+        self.assertTrue(out.isascii(), out)
+
     def test_unsafe_archive_rejected(self):
         rel, _ = self.simple_db(members={"../evil.txt": b"x"}, layout=())
         self.write_recipe("toy", [rel])
