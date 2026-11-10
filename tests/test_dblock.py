@@ -275,6 +275,52 @@ class TestFetchVerify(Base):
         self.assertEqual(code, 1)
         self.assertIn("toy/expected.idx", err)
 
+    def test_layout_problem_is_not_installed(self):
+        # A layout failure must not be recorded, or the next fetch accepts it.
+        rel, _ = self.simple_db(layout=("toy/a.txt", "toy/expected.idx"))
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+        self.assertEqual(self.run_cli("fetch")[0], 1)
+        self.assertFalse(Lockfile.load(self.lock).get("toy").fetched)
+        self.assertFalse((store.install_dir(self.store_dir, "toy", "1") / "manifest.json").exists())
+        self.assertFalse(store.data_dir(self.store_dir, "toy", "1").exists())
+        self.assertTrue((self.store_dir / ".downloads" / "toy-1.tar.gz.bad").exists())
+        self.assertEqual(self.run_cli("path", "toy")[0], 1)
+        code, _, err = self.run_cli("fetch")
+        self.assertEqual(code, 1)
+        self.assertIn("toy/expected.idx", err)
+
+    def test_tree_digest_mismatch_is_not_recorded(self):
+        # Fetching on another machine must not overwrite the locked tree digest.
+        rel, _ = self.simple_db()
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+        self.assertEqual(self.run_cli("fetch")[0], 0)
+        lock = Lockfile.load(self.lock)
+        lock.get("toy").tree_digest = "sha256:" + "0" * 64
+        lock.save()
+        self.store_dir = self.tmp / "store2"
+        code, _, err = self.run_cli("fetch")
+        self.assertEqual(code, 1)
+        self.assertIn("differ from the lockfile digest", err)
+        self.assertEqual(Lockfile.load(self.lock).get("toy").tree_digest, "sha256:" + "0" * 64)
+        self.assertEqual(self.run_cli("fetch")[0], 1)
+        self.assertEqual(self.run_cli("verify")[0], 1)
+
+    def test_repeated_checksum_mismatch_keeps_each_bad_file(self):
+        rel, _ = self.simple_db()
+        rel["checksum"] = "md5:" + "0" * 32
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+        self.assertEqual(self.run_cli("fetch")[0], 1)
+        code, _, err = self.run_cli("fetch")
+        self.assertEqual(code, 1, err)
+        self.assertIn("md5 mismatch", err)
+        downloads = self.store_dir / ".downloads"
+        self.assertTrue((downloads / "toy-1.tar.gz.bad").exists())
+        self.assertTrue((downloads / "toy-1.tar.gz.bad.1").exists())
+        self.assertIn("toy-1.tar.gz.bad.1", err)
+
     def test_diff_between_releases(self):
         rel1, _ = self.simple_db(version="1")
         rel2, _ = self.simple_db(version="2", members={"toy/a.txt": b"alpha2\n", "toy/c.txt": b"new"})

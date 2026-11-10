@@ -6,6 +6,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -209,16 +210,16 @@ def cmd_fetch(args) -> int:
             algorithms.append("md5")
         digests = hash_file(archive, tuple(algorithms), progress="" if args.quiet else "  hashing archive")
         if upstream_hex and digests[upstream_algo] != upstream_hex.lower():
-            archive.rename(archive.with_name(archive.name + ".bad"))
+            bad = _quarantine(archive)
             print(f"  PROBLEM: {upstream_algo} mismatch: upstream says {upstream_hex}, got {digests[upstream_algo]}. "
-                  f"Kept as {archive.name}.bad", file=sys.stderr)
+                  f"Kept as {bad.name}", file=sys.stderr)
             problems += 1
             continue
         if entry.archive_sha256 and digests["sha256"] != entry.archive_sha256:
-            archive.rename(archive.with_name(archive.name + ".bad"))
+            bad = _quarantine(archive)
             print(f"  PROBLEM: the file served now differs from the locked archive "
                   f"(locked sha256 {entry.archive_sha256}, got {digests['sha256']}). "
-                  f"Upstream may have replaced it. Kept as {archive.name}.bad", file=sys.stderr)
+                  f"Upstream may have replaced it. Kept as {bad.name}", file=sys.stderr)
             problems += 1
             continue
         origin = "upstream-verified" if upstream_hex else "first-download"
@@ -229,14 +230,22 @@ def cmd_fetch(args) -> int:
         store.unpack(archive, entry.format, target)
         missing = store.check_layout(target, layout)
         if missing:
-            print(f"  PROBLEM: unpacked files do not match the expected layout; missing: {', '.join(missing)}",
-                  file=sys.stderr)
+            # Not installed: a later fetch must not find and accept it.
+            shutil.rmtree(target)
+            manifest_path.unlink(missing_ok=True)
+            bad = _quarantine(archive)
+            print(f"  PROBLEM: unpacked files do not match the expected layout; missing: {', '.join(missing)}. "
+                  f"Nothing was installed; kept the archive as {bad.name}", file=sys.stderr)
             problems += 1
+            continue
         manifest = store.build_manifest(entry.name, entry.release, digests["sha256"], target, args.quiet)
         manifest.save(manifest_path)
         if entry.tree_digest and manifest.digest != entry.tree_digest:
-            print(f"  PROBLEM: unpacked contents differ from the lockfile digest", file=sys.stderr)
+            # Keep the install for inspection, but never overwrite the locked digest.
+            print(f"  PROBLEM: unpacked contents differ from the lockfile digest "
+                  f"(locked {entry.tree_digest}, got {manifest.digest})", file=sys.stderr)
             problems += 1
+            continue
         entry.archive_sha256 = digests["sha256"]
         if not entry.checksum_origin:
             entry.checksum_origin = origin
@@ -247,6 +256,17 @@ def cmd_fetch(args) -> int:
         lock.save()
     lock.save()
     return PROBLEMS if problems else OK
+
+
+def _quarantine(archive: Path) -> Path:
+    """Rename a rejected archive to NAME.bad (or NAME.bad.1, ...) without replacing an earlier one."""
+    bad = archive.with_name(archive.name + ".bad")
+    n = 0
+    while bad.exists():
+        n += 1
+        bad = archive.with_name(f"{archive.name}.bad.{n}")
+    archive.rename(bad)
+    return bad
 
 
 def _record(entry: Entry, manifest: store.Manifest) -> None:
