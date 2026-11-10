@@ -1,0 +1,3 @@
+# Store text files with LF and check them out with LF on every platform,
+# so Windows and WSL checkouts of the same folder agree.
+* text=auto eol=lf
