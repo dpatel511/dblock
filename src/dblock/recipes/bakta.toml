@@ -19,7 +19,7 @@ checksum = "md5:4a6e059ded39e9c5537ef4137d2f5648"
 tool_versions = ">=1.11"
 layout = ["db-light/version.json"]
 urls = ["https://zenodo.org/api/records/14916843/files/db-light.tar.xz/content"]
-note = "Zenodo record 14916843"
+note = "Zenodo record 14916843. Observed 2026-11-10: Bioconda bakta 1.12.2 installs AMRFinderPlus 4.2.7, which rejects the bundled AMRFinderPlus database 2024-12-18.1 (needs >= 2025-09-22.2). Update that database in a copy outside the dblock store; see https://github.com/dpatel511/dblock/blob/main/VALIDATION.md"
 
 [[releases]]
 version = "6.0"

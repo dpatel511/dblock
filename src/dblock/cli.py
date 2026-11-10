@@ -318,10 +318,11 @@ def cmd_status(args) -> int:
         return OK
     print(f"lockfile: {lock.path}\nstore:    {root}\n")
     for entry in lock.select(None):
-        installed = (store.install_dir(root, entry.name, entry.release) / "manifest.json").exists()
-        state = "installed" if installed else ("locked, not on this machine" if entry.fetched else "not fetched")
+        present = (store.install_dir(root, entry.name, entry.release) / "manifest.json").exists()
+        state = "present (not verified)" if present else ("locked, not on this machine" if entry.fetched else "not fetched")
         origin = entry.checksum_origin or "-"
         print(f"{entry.name:<18} {entry.release:<24} {state:<28} checksum: {origin}")
+    _log(args, "\nstatus does not check files; run `dblock verify` for that")
     return OK
 
 
