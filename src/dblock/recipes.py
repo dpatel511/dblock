@@ -6,7 +6,7 @@ import hashlib
 import tomllib
 from dataclasses import dataclass, field
 from importlib import resources
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 FORMATS = {"tar.gz", "tar.xz", "tar.bz2", "tar", "zip", "gz", "file"}
 
@@ -27,6 +27,7 @@ class Release:
     tool_versions: str = ""  # e.g. ">=2.4.1,<=2.6.1"
     layout: tuple[str, ...] = ()  # paths (or glob patterns) that must exist after unpacking
     note: str = ""
+    tool_path: str = ""  # what the tool should be pointed at, relative to the data directory ("." = itself)
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,7 @@ class Recipe:
     version_regex: str = r"(\d+(?:\.\d+)+)"
     citation: str = ""
     notes: tuple[str, ...] = field(default_factory=tuple)
+    tool_env: str = ""  # environment variable the tool reads, e.g. "BAKTA_DB"
 
     def release(self, version: str | None) -> Release:
         if version is None:
@@ -71,6 +73,9 @@ def _parse(text: str, source: str) -> Recipe:
         checksum = raw.get("checksum", "")
         if checksum and checksum.split(":", 1)[0] not in ("md5", "sha256"):
             raise RecipeError(f"{source}: checksum must start with 'md5:' or 'sha256:'")
+        tool_path = raw.get("tool_path", "")
+        if tool_path and (PurePosixPath(tool_path).is_absolute() or ".." in PurePosixPath(tool_path).parts):
+            raise RecipeError(f"{source}: tool_path must be relative to the data directory: '{tool_path}'")
         releases.append(Release(
             version=str(raw["version"]),
             urls=tuple(raw["urls"]),
@@ -82,6 +87,7 @@ def _parse(text: str, source: str) -> Recipe:
             tool_versions=raw.get("tool_versions", ""),
             layout=tuple(raw.get("layout", ())),
             note=raw.get("note", ""),
+            tool_path=tool_path,
         ))
     if not releases:
         raise RecipeError(f"{source}: no releases")
@@ -97,6 +103,7 @@ def _parse(text: str, source: str) -> Recipe:
         version_regex=data.get("version_regex", r"(\d+(?:\.\d+)+)"),
         citation=data.get("citation", ""),
         notes=tuple(data.get("notes", ())),
+        tool_env=data.get("tool_env", ""),
     )
 
 

@@ -1,6 +1,7 @@
 name = "bakta-galaxy-test"
 description = "Tiny Bakta test database used by the Galaxy wrapper (390 KB); handy for trying dblock"
 homepage = "https://zenodo.org/records/22298301"
+tool_env = "BAKTA_DB"
 notes = [
   "Test data only, not for annotation.",
   "The Zenodo record is labelled 6.0, but the archive contains a folder named V5.1_light_2024-01-19.",
@@ -13,5 +14,6 @@ filename = "bakta-galaxy-test-db-light.tar.gz"
 format = "tar.gz"
 size = 390214
 checksum = "md5:29ac0addf985d7255c0928326a67178c"
-layout = ["*/version.json", "*/bakta.db"]
+layout = ["V5.1_light_2024-01-19/version.json", "V5.1_light_2024-01-19/bakta.db"]
+tool_path = "V5.1_light_2024-01-19"
 urls = ["https://zenodo.org/api/records/22298301/files/db-light.tar.gz/content"]

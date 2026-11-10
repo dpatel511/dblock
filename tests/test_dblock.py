@@ -7,6 +7,7 @@ import hashlib
 import io
 import json
 import os
+import shlex
 import tarfile
 import tempfile
 import threading
@@ -53,9 +54,10 @@ def make_tar(members: dict[str, bytes]) -> bytes:
     return buf.getvalue()
 
 
-def recipe_toml(name: str, releases: list[dict]) -> str:
+def recipe_toml(name: str, releases: list[dict], **top) -> str:
     out = [f'name = "{name}"', 'description = "test db"', 'homepage = "http://example.org"',
            'tool = "python"', 'version_command = ["python", "--version"]', 'citation = "Test et al."']
+    out += [f"{key} = {json.dumps(value)}" for key, value in top.items()]
     for rel in releases:
         out.append("\n[[releases]]")
         for key, value in rel.items():
@@ -86,8 +88,8 @@ class Base(unittest.TestCase):
         FILES[path] = data
         return self.base + path
 
-    def write_recipe(self, name: str, releases: list[dict]) -> None:
-        (self.recipes / f"{name}.toml").write_text(recipe_toml(name, releases), encoding="utf-8")
+    def write_recipe(self, name: str, releases: list[dict], **top) -> None:
+        (self.recipes / f"{name}.toml").write_text(recipe_toml(name, releases, **top), encoding="utf-8")
 
     def run_cli(self, *argv: str) -> tuple[int, str, str]:
         out, err = io.StringIO(), io.StringIO()
@@ -119,6 +121,27 @@ class TestRecipesAndSpecs(unittest.TestCase):
     def test_unknown_release(self):
         with self.assertRaises(RecipeError):
             load_recipes()["gtdbtk"].release("r1")
+
+    def test_bundled_tool_paths_match_layout(self):
+        # Every bundled tool_path must be a folder or file the recipe's layout says exists.
+        for recipe in load_recipes().values():
+            for rel in recipe.releases:
+                if not rel.tool_path:
+                    continue
+                self.assertTrue(recipe.tool_env, recipe.name)
+                if rel.tool_path == ".":
+                    continue
+                self.assertTrue(any(p.rstrip("/") == rel.tool_path or p.startswith(rel.tool_path + "/")
+                                    for p in rel.layout), f"{recipe.name}@{rel.version}: {rel.tool_path}")
+
+    def test_tool_path_must_stay_inside_data(self):
+        for bad in ("../outside", "/abs/path"):
+            tmp = Path(tempfile.mkdtemp())
+            (tmp / "bad.toml").write_text(recipe_toml("bad", [{
+                "version": "1", "urls": ["http://x"], "filename": "x.tar.gz", "format": "tar.gz",
+                "tool_path": bad}]), encoding="utf-8")
+            with self.assertRaises(RecipeError):
+                load_recipes(tmp)
 
     def test_parse_spec(self):
         self.assertEqual(parse_spec("gtdbtk@r232"), ("gtdbtk", "r232"))
@@ -390,6 +413,76 @@ class TestFetchVerify(Base):
         code, _, err = self.run_cli("add", "nope")
         self.assertEqual(code, 2)
         self.assertIn("unknown database", err)
+
+
+class TestToolPaths(Base):
+    def install(self, name="toy", tool_env="TOY_DB", tool_path="toy", fetch=True):
+        rel, _ = self.simple_db(name=name)
+        if tool_path:
+            rel["tool_path"] = tool_path
+        top = {"tool_env": tool_env} if tool_env else {}
+        self.write_recipe(name, [rel], **top)
+        self.run_cli("add", name)
+        if fetch:
+            self.assertEqual(self.run_cli("fetch", name)[0], 0)
+        return store.data_dir(self.store_dir, name, "1")
+
+    def test_path_tool(self):
+        data = self.install()
+        code, out, _ = self.run_cli("path", "toy", "--tool")
+        self.assertEqual(code, 0)
+        self.assertEqual(Path(out.strip()), data / "toy")
+        code, out, _ = self.run_cli("path", "toy")  # unchanged without --tool
+        self.assertEqual(Path(out.strip()), data)
+
+    def test_path_tool_without_recipe_rule(self):
+        self.install(tool_env="", tool_path="")
+        code, out, err = self.run_cli("path", "toy", "--tool")
+        self.assertEqual(code, 2)
+        self.assertEqual(out, "")
+        self.assertIn("states no tool path", err)
+
+    def test_path_tool_missing_on_disk(self):
+        data = self.install()
+        (data / "toy" / "a.txt").unlink()
+        (data / "toy" / "sub" / "b.txt").unlink()
+        (data / "toy" / "sub").rmdir()
+        (data / "toy").rmdir()
+        code, out, err = self.run_cli("path", "toy", "--tool")
+        self.assertEqual(code, 1)
+        self.assertEqual(out, "")
+        self.assertIn("not found", err)
+
+    def test_env_exports_quoted_path(self):
+        self.store_dir = self.tmp / "store with space"
+        data = self.install()
+        code, out, err = self.run_cli("env")
+        self.assertEqual(code, 0, err)
+        self.assertTrue(out.startswith("export TOY_DB="), out)
+        name, _, value = out.strip()[len("export "):].partition("=")
+        self.assertEqual(Path(shlex.split(value)[0]), data / "toy")
+
+    def test_env_not_installed(self):
+        self.install(fetch=False)
+        code, out, err = self.run_cli("env")
+        self.assertEqual(code, 1)
+        self.assertEqual(out, "")
+        self.assertIn("not installed", err)
+
+    def test_env_skips_recipe_without_variable(self):
+        self.install(tool_env="", tool_path="")
+        code, out, err = self.run_cli("env")
+        self.assertEqual(code, 0)
+        self.assertEqual(out, "")
+        self.assertIn("no environment variable", err)
+
+    def test_env_conflict_exports_neither(self):
+        self.install(name="one")
+        self.install(name="two")
+        code, out, err = self.run_cli("env")
+        self.assertEqual(code, 1)
+        self.assertEqual(out, "")
+        self.assertIn("TOY_DB", err)
 
 
 if __name__ == "__main__":

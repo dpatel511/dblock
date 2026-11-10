@@ -6,6 +6,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import shlex
 import shutil
 import sys
 from pathlib import Path
@@ -78,6 +79,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = cmd("path", cmd_path, "print the installed data directory of a database (for scripts and pipelines)")
     p.add_argument("name")
+    p.add_argument("--tool", action="store_true",
+                   help="print the path the tool expects (e.g. the Bakta db folder or the CheckM2 .dmnd file)")
+
+    p = cmd("env", cmd_env, "print shell export lines for the tools' database variables (eval \"$(dblock env)\")")
+    p.add_argument("names", nargs="*", help="default: all locked databases")
 
     p = cmd("check-compat", cmd_check_compat, "check installed tool versions against each database release")
     p.add_argument("names", nargs="*")
@@ -122,6 +128,8 @@ def cmd_recipes(args) -> int:
         print(f"{r.name}: {r.description}\n  homepage: {r.homepage}\n  recipe: {r.source}")
         if r.citation:
             print(f"  cite: {r.citation}")
+        if r.tool_env:
+            print(f"  tool variable: {r.tool_env} (set it with `dblock env`)")
         for note in r.notes:
             print(f"  note: {note}")
         print("  releases (newest first):")
@@ -130,6 +138,8 @@ def cmd_recipes(args) -> int:
             tools = f"  {r.tool} {rel.tool_versions}" if rel.tool_versions else ""
             size = human_bytes(rel.size) if rel.size else "size unknown"
             print(f"    {rel.version:<22} {rel.date or '-':<11} {size:>9}  checksum: {checksum:<13}{tools}")
+            if rel.tool_path:
+                print(f"      tool path: {rel.tool_path} (`dblock path {r.name} --tool`)")
             if rel.note:
                 print(f"      {rel.note}")
         return OK
@@ -333,8 +343,55 @@ def cmd_path(args) -> int:
     if not target.is_dir():
         print(f"error: {entry.name}@{entry.release} is not installed; run `dblock fetch {entry.name}`", file=sys.stderr)
         return PROBLEMS
+    if args.tool:
+        tool_path = _tool_path(entry, _recipe_for(entry, load_recipes(args.recipes), args))
+        if not tool_path:
+            print(f"error: the {entry.name} recipe states no tool path for {entry.release}", file=sys.stderr)
+            return ERROR
+        target = target / tool_path
+        if not target.exists():
+            print(f"error: {target} not found; run `dblock verify {entry.name}`", file=sys.stderr)
+            return PROBLEMS
     print(target)
     return OK
+
+
+def _tool_path(entry: Entry, recipe: Recipe | None) -> str:
+    if not recipe:
+        return ""
+    try:
+        return recipe.release(entry.release).tool_path
+    except RecipeError:
+        return ""
+
+
+def cmd_env(args) -> int:
+    lock = Lockfile.load(args.lock)
+    recipes = load_recipes(args.recipes)
+    root = _store(args)
+    problems = 0
+    exports: dict[str, list[tuple[str, Path]]] = {}
+    for entry in lock.select(args.names):
+        recipe = _recipe_for(entry, recipes, args)
+        tool_path = _tool_path(entry, recipe)
+        if not (recipe and recipe.tool_env and tool_path):
+            _log(args, f"{entry.name}@{entry.release}: the recipe states no environment variable; skipped")
+            continue
+        target = store.data_dir(root, entry.name, entry.release) / tool_path
+        if not target.exists():
+            print(f"error: {entry.name}@{entry.release} is not installed ({target} not found); "
+                  f"run `dblock fetch {entry.name}`", file=sys.stderr)
+            problems += 1
+            continue
+        exports.setdefault(recipe.tool_env, []).append((entry.name, target))
+    for var, items in exports.items():
+        if len(items) > 1:
+            print(f"error: {var} would be set by {', '.join(name for name, _ in items)}; "
+                  f"choose one with `dblock env NAME`", file=sys.stderr)
+            problems += 1
+            continue
+        print(f"export {var}={shlex.quote(str(items[0][1]))}")
+    return PROBLEMS if problems else OK
 
 
 def cmd_check_compat(args) -> int:
