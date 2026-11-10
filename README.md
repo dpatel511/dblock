@@ -11,7 +11,7 @@ Tools like GTDB-Tk, Kraken 2, CheckM2 and Bakta depend on large reference databa
 Python 3.11 or newer. No other dependencies.
 
 ```bash
-python -m pip install git+https://github.com/dpatel511/dblock.git
+python -m pip install dblock
 dblock --version
 ```
 
