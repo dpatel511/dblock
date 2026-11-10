@@ -1,0 +1,37 @@
+name = "kraken2"
+description = "Prebuilt Kraken 2 / Bracken indexes (Langmead lab index collection)"
+homepage = "https://benlangmead.github.io/aws-indexes/k2"
+tool = "kraken2"
+version_command = ["kraken2", "--version"]
+citation = "Wood DE, Lu J, Langmead B (2019) Improved metagenomic analysis with Kraken 2. Genome Biology 20:257"
+notes = [
+  "The index collection does not publish checksums; dblock records the SHA-256 at first download.",
+  "No tool-version rule is stated upstream for these indexes.",
+]
+
+[[releases]]
+version = "standard-8gb-20240904"
+date = "2024-09-04"
+filename = "k2_standard_08gb_20240904.tar.gz"
+format = "tar.gz"
+size = 5948839817
+layout = ["hash.k2d", "opts.k2d", "taxo.k2d"]
+urls = ["https://genome-idx.s3.amazonaws.com/kraken/k2_standard_08gb_20240904.tar.gz"]
+
+[[releases]]
+version = "pluspf-20240904"
+date = "2024-09-04"
+filename = "k2_pluspf_20240904.tar.gz"
+format = "tar.gz"
+size = 71110483952
+layout = ["hash.k2d", "opts.k2d", "taxo.k2d"]
+urls = ["https://genome-idx.s3.amazonaws.com/kraken/k2_pluspf_20240904.tar.gz"]
+
+[[releases]]
+version = "viral-20240904"
+date = "2024-09-04"
+filename = "k2_viral_20240904.tar.gz"
+format = "tar.gz"
+size = 564123047
+layout = ["hash.k2d", "opts.k2d", "taxo.k2d"]
+urls = ["https://genome-idx.s3.amazonaws.com/kraken/k2_viral_20240904.tar.gz"]

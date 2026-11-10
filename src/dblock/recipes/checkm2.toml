@@ -1,0 +1,18 @@
+name = "checkm2"
+description = "CheckM2 reference database (UniRef100/KO DIAMOND database)"
+homepage = "https://github.com/chklovski/CheckM2"
+tool = "checkm2"
+version_command = ["checkm2", "--version"]
+citation = "Chklovski A et al. (2023) CheckM2: a rapid, scalable and accurate tool for assessing microbial genome quality using machine learning. Nature Methods 20:1203-1212"
+notes = ["Point CheckM2 at the .dmnd file: checkm2 predict --database_path $(dblock path checkm2)/CheckM2_database/uniref100.KO.1.dmnd"]
+
+[[releases]]
+version = "3"
+date = "2025-02-20"
+filename = "checkm2_database.tar.gz"
+format = "tar.gz"
+size = 1735095710
+checksum = "md5:07c10655620843b517d0df0c160d911f"
+layout = ["CheckM2_database/uniref100.KO.1.dmnd"]
+urls = ["https://zenodo.org/api/records/14897628/files/checkm2_database.tar.gz/content"]
+note = "Zenodo record 14897628"

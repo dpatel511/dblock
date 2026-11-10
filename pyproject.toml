@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dblock"
+version = "0.1.0.dev0"
+description = "Lockfiles for bioinformatics reference databases: pin, fetch, verify and cite exact releases."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Dev Patel" }]
+requires-python = ">=3.11"
+dependencies = []
+keywords = ["bioinformatics", "reproducibility", "databases", "lockfile", "metagenomics"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Environment :: Console",
+]
+
+[project.urls]
+Homepage = "https://github.com/dpatel511/dblock"
+
+[project.scripts]
+dblock = "dblock.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+dblock = ["recipes/*.toml"]
