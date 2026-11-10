@@ -45,6 +45,8 @@ Databases are stored in `$DBLOCK_STORE` (default `~/.dblock/store`), one folder 
 
 When a provider publishes no checksum (GTDB, one older Kraken 2 index), dblock records the SHA-256 of the first download and says so (`checksum_origin = "first-download"`). It never claims more than it checked.
 
+[VALIDATION.md](VALIDATION.md) records real runs against upstream databases and the tools that use them.
+
 ## The lockfile
 
 ```toml
