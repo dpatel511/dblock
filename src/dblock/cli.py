@@ -359,7 +359,7 @@ def cmd_provenance(args) -> int:
         origin = "verified against upstream checksum" if row["checksum_origin"] == "upstream-verified" \
             else "no upstream checksum published; hash recorded at first download"
         print(f"- {row['name']} {row['release']}, downloaded {row['fetched_at']} from {row['source']} "
-              f"(archive SHA-256 {row['archive_sha256'][:16]}…, {origin}).")
+              f"(archive SHA-256 {row['archive_sha256'][:16]}..., {origin}).")
         if row["citation"]:
             print(f"  Cite: {row['citation']}")
     return OK
@@ -378,7 +378,7 @@ def cmd_diff(args) -> int:
         for path in items[: args.limit]:
             print(f"  {label:<8} {path}")
         if len(items) > args.limit:
-            print(f"  {label:<8} … {len(items) - args.limit} more")
+            print(f"  {label:<8} ... {len(items) - args.limit} more")
     return OK
 
 
