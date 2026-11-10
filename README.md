@@ -43,7 +43,7 @@ Databases are stored in `$DBLOCK_STORE` (default `~/.dblock/store`), one folder 
 | Tree digest and per-file manifest | `verify` | Files deleted, added or modified after install |
 | Tool-version rules | `check-compat` | Database release used with an incompatible tool version |
 
-When a provider publishes no checksum (GTDB, the Kraken 2 index collection), dblock records the SHA-256 of the first download and says so (`checksum_origin = "first-download"`). It never claims more than it checked.
+When a provider publishes no checksum (GTDB, one older Kraken 2 index), dblock records the SHA-256 of the first download and says so (`checksum_origin = "first-download"`). It never claims more than it checked.
 
 ## The lockfile
 
@@ -70,7 +70,7 @@ The store location is machine-specific and deliberately not in the lockfile.
 | Name | Releases | Upstream checksum | Tool-version rules |
 |---|---|---|---|
 | `gtdbtk` | r232, r226, r220 | none published | from GTDB-Tk docs |
-| `kraken2` | standard-8gb, pluspf, viral (2024-09-04) | none published | none stated |
+| `kraken2` | standard-8gb, pluspf, viral (2026-10-22, 2024-09-04) | MD5 (except standard-8gb-20240904) | none stated |
 | `checkm2` | 3 (Zenodo) | MD5 | none stated |
 | `bakta` | 6.0, 6.0-light (Zenodo) | MD5 | from `db-versions.json` |
 | `bakta-galaxy-test` | 390 KB test database | MD5 | for trying dblock |
