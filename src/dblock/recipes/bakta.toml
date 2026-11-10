@@ -3,10 +3,11 @@ description = "Bakta annotation database (full or light)"
 homepage = "https://doi.org/10.5281/zenodo.4247253"
 tool = "bakta"
 version_command = ["bakta", "--version"]
+tool_env = "BAKTA_DB"
 citation = "Schwengers O et al. (2021) Bakta: rapid and standardized annotation of bacterial genomes via alignment-free sequence identification. Microbial Genomics 7(11):000685"
 notes = [
   "Minimum Bakta versions are from the database's db-versions.json on Zenodo.",
-  "Point Bakta at the unpacked folder: bakta --db $(dblock path bakta)/db  (or /db-light)",
+  "Bakta reads the db folder from BAKTA_DB or --db (config.py, checked against Bakta 1.12.2 source, 2026-11-10). Use `dblock env` or `dblock path bakta --tool`.",
 ]
 
 [[releases]]
@@ -18,6 +19,7 @@ size = 1344199496
 checksum = "md5:4a6e059ded39e9c5537ef4137d2f5648"
 tool_versions = ">=1.11"
 layout = ["db-light/version.json"]
+tool_path = "db-light"
 urls = ["https://zenodo.org/api/records/14916843/files/db-light.tar.xz/content"]
 note = "Zenodo record 14916843. Observed 2026-11-10: Bioconda bakta 1.12.2 installs AMRFinderPlus 4.2.7, which rejects the bundled AMRFinderPlus database 2024-12-18.1 (needs >= 2025-09-22.2). Update that database in a copy outside the dblock store; see https://github.com/dpatel511/dblock/blob/main/VALIDATION.md"
 
@@ -30,5 +32,6 @@ size = 31921769288
 checksum = "md5:4c1115e40abfa2b464ae5dd988bdd88e"
 tool_versions = ">=1.11"
 layout = ["db/version.json"]
+tool_path = "db"
 urls = ["https://zenodo.org/api/records/14916843/files/db.tar.xz/content"]
 note = "Zenodo record 14916843"

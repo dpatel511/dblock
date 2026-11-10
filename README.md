@@ -28,8 +28,18 @@ dblock verify --full                 # re-hash every file
 dblock check-compat                  # are installed tools compatible with these releases?
 dblock provenance                    # text for a methods section (or --format json)
 
-export GTDBTK_DATA_PATH="$(dblock path gtdbtk)/release226"
+eval "$(dblock env)"                 # export GTDBTK_DATA_PATH, CHECKM2DB, ... for the locked databases
+dblock path checkm2 --tool           # just the path the tool expects (here the .dmnd file)
 ```
+
+| Recipe | Variable set by `dblock env` | `dblock path NAME --tool` points to |
+|---|---|---|
+| `gtdbtk` | `GTDBTK_DATA_PATH` | the `releaseNNN` folder |
+| `kraken2` | `KRAKEN2_DEFAULT_DB` (used when `--db` is not given) | the index folder |
+| `checkm2` | `CHECKM2DB` | `CheckM2_database/uniref100.KO.1.dmnd` |
+| `bakta`, `bakta-galaxy-test` | `BAKTA_DB` | the `db` or `db-light` folder |
+
+`dblock env` prints POSIX shell syntax. `dblock path NAME` without `--tool` still prints the top-level data folder.
 
 Databases are stored in `$DBLOCK_STORE` (default `~/.dblock/store`), one folder per name and release, so several releases can live side by side on a shared server.
 
@@ -89,6 +99,7 @@ description = "My reference database"
 homepage = "https://example.org"
 tool = "mytool"
 version_command = ["mytool", "--version"]
+tool_env = "MYTOOL_DB"       # optional: variable `dblock env` sets
 
 [[releases]]                 # newest first
 version = "2"
@@ -98,6 +109,7 @@ size = 123456
 checksum = "md5:…"           # optional
 tool_versions = ">=1.4,<2"   # optional
 layout = ["mydb/index.bin"]  # optional: must exist after unpacking (globs allowed)
+tool_path = "mydb"           # optional: what the tool is pointed at, relative to the data folder
 urls = ["https://example.org/mydb-2.tar.gz", "https://mirror.example.org/mydb-2.tar.gz"]
 ```
 

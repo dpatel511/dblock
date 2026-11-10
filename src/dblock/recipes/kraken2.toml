@@ -3,12 +3,14 @@ description = "Prebuilt Kraken 2 / Bracken indexes (Langmead lab index collectio
 homepage = "https://benlangmead.github.io/aws-indexes/k2"
 tool = "kraken2"
 version_command = ["kraken2", "--version"]
+tool_env = "KRAKEN2_DEFAULT_DB"
 citation = "Wood DE, Lu J, Langmead B (2019) Improved metagenomic analysis with Kraken 2. Genome Biology 20:257"
 notes = [
   "Archive MD5s come from the collection's published .md5 files (https://genome-idx.s3.amazonaws.com/kraken/<collection>_<date>/<collection>.md5), checked 2026-11-10.",
   "standard-8gb-20240904 has no checksum: its .md5 file names k2_standard08gb_20240904.tar.gz, not the served k2_standard_08gb_20240904.tar.gz, so it is not used. dblock records the SHA-256 at first download.",
   "From 2025-07 upstream names the 8 GB indexes k2_standard_08_GB_<date> instead of k2_standard_08gb_<date>.",
   "No tool-version rule is stated upstream for these indexes.",
+  "kraken2 reads KRAKEN2_DEFAULT_DB when --db is not given (kraken2lib.pm, checked against Kraken 2 2.17.2 source, 2026-11-10).",
 ]
 
 [[releases]]
@@ -19,6 +21,7 @@ format = "tar.gz"
 size = 5936595768
 checksum = "md5:7447d230ea402d0b523c14d217b5c20b"
 layout = ["hash.k2d", "opts.k2d", "taxo.k2d"]
+tool_path = "."
 urls = ["https://genome-idx.s3.amazonaws.com/kraken/k2_standard_08_GB_20261022.tar.gz"]
 note = "Layout taken from the published .md5 file list; archive not downloaded for this check."
 
@@ -30,6 +33,7 @@ format = "tar.gz"
 size = 96358495912
 checksum = "md5:7d28dbee49fe7db4809d6110d7c23689"
 layout = ["hash.k2d", "opts.k2d", "taxo.k2d"]
+tool_path = "."
 urls = ["https://genome-idx.s3.amazonaws.com/kraken/k2_pluspf_20261022.tar.gz"]
 note = "Layout taken from the published .md5 file list; archive not downloaded for this check."
 
@@ -41,6 +45,7 @@ format = "tar.gz"
 size = 589941425
 checksum = "md5:2c8c97686c45474d1d82cf940b4d9893"
 layout = ["hash.k2d", "opts.k2d", "taxo.k2d"]
+tool_path = "."
 urls = ["https://genome-idx.s3.amazonaws.com/kraken/k2_viral_20261022.tar.gz"]
 
 [[releases]]
@@ -50,6 +55,7 @@ filename = "k2_standard_08gb_20240904.tar.gz"
 format = "tar.gz"
 size = 5948839817
 layout = ["hash.k2d", "opts.k2d", "taxo.k2d"]
+tool_path = "."
 urls = ["https://genome-idx.s3.amazonaws.com/kraken/k2_standard_08gb_20240904.tar.gz"]
 
 [[releases]]
@@ -60,6 +66,7 @@ format = "tar.gz"
 size = 71110483952
 checksum = "md5:81012c99f5f1c32db3704dbba1b93428"
 layout = ["hash.k2d", "opts.k2d", "taxo.k2d"]
+tool_path = "."
 urls = ["https://genome-idx.s3.amazonaws.com/kraken/k2_pluspf_20240904.tar.gz"]
 
 [[releases]]
@@ -70,4 +77,5 @@ format = "tar.gz"
 size = 564123047
 checksum = "md5:37fc72e5ef54018641b9900421eaa678"
 layout = ["hash.k2d", "opts.k2d", "taxo.k2d"]
+tool_path = "."
 urls = ["https://genome-idx.s3.amazonaws.com/kraken/k2_viral_20240904.tar.gz"]

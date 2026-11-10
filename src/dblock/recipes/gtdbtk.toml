@@ -3,11 +3,12 @@ description = "GTDB-Tk reference data package (GTDB release)"
 homepage = "https://ecogenomics.github.io/GTDBTk/installing/index.html"
 tool = "gtdbtk"
 version_command = ["gtdbtk", "--version"]
+tool_env = "GTDBTK_DATA_PATH"
 citation = "Chaumeil P-A et al. (2022) GTDB-Tk v2. Bioinformatics 38(23):5315-5316"
 notes = [
   "GTDB does not publish checksums for these packages; dblock records the SHA-256 at first download.",
   "Compatibility ranges are from the GTDB-Tk installation docs.",
-  "Point GTDB-Tk at the unpacked folder: export GTDBTK_DATA_PATH=$(dblock path gtdbtk)/releaseNNN",
+  "GTDB-Tk reads the release folder from GTDBTK_DATA_PATH (config/common.py, checked against GTDB-Tk 2.8.0 source, 2026-11-10). Use `dblock env` or `dblock path gtdbtk --tool`.",
 ]
 
 [[releases]]
@@ -18,6 +19,7 @@ format = "tar.gz"
 size = 60806405195
 tool_versions = ">=2.7.0"
 layout = ["release232/", "release232/skani/database/sketches.db"]
+tool_path = "release232"
 urls = [
   "https://data.gtdb.ecogenomic.org/releases/release232/232.0/auxillary_files/gtdbtk_package/full_package/gtdbtk_r232_data.tar.gz",
   "https://data.ace.uq.edu.au/public/gtdb/data/releases/release232/232.0/auxillary_files/gtdbtk_package/full_package/gtdbtk_r232_data.tar.gz",
@@ -31,6 +33,7 @@ format = "tar.gz"
 size = 141442235198
 tool_versions = ">=2.4.1,<=2.6.1"
 layout = ["release226/", "release226/masks/"]
+tool_path = "release226"
 urls = [
   "https://data.gtdb.ecogenomic.org/releases/release226/226.0/auxillary_files/gtdbtk_package/full_package/gtdbtk_r226_data.tar.gz",
   "https://data.ace.uq.edu.au/public/gtdb/data/releases/release226/226.0/auxillary_files/gtdbtk_package/full_package/gtdbtk_r226_data.tar.gz",
@@ -44,6 +47,7 @@ format = "tar.gz"
 size = 108491169765
 tool_versions = ">=2.4.0,<=2.6.1"
 layout = ["release220/", "release220/skani/"]
+tool_path = "release220"
 urls = [
   "https://data.gtdb.ecogenomic.org/releases/release220/220.0/auxillary_files/gtdbtk_package/full_package/gtdbtk_r220_data.tar.gz",
   "https://data.ace.uq.edu.au/public/gtdb/data/releases/release220/220.0/auxillary_files/gtdbtk_package/full_package/gtdbtk_r220_data.tar.gz",
