@@ -290,6 +290,20 @@ class TestFetchVerify(Base):
         self.assertEqual(code, 1)
         self.assertIn("toy/expected.idx", err)
 
+    def test_status_does_not_claim_files_are_checked(self):
+        # status only looks for the manifest; it must not say "installed" for a damaged copy.
+        rel, _ = self.simple_db()
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+        self.run_cli("fetch")
+        (store.data_dir(self.store_dir, "toy", "1") / "toy/a.txt").unlink()
+        code, out, err = self.run_cli("status")
+        self.assertEqual(code, 0)
+        self.assertNotIn("installed", out)
+        self.assertIn("present (not verified)", out)
+        self.assertIn("dblock verify", err)
+        self.assertEqual(self.run_cli("verify")[0], 1)
+
     def test_tree_digest_mismatch_is_not_recorded(self):
         # Fetching on another machine must not overwrite the locked tree digest.
         rel, _ = self.simple_db()
