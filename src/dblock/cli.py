@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 from dblock import __version__, compat, store
-from dblock.download import DownloadError, download, hash_file, human_bytes
+from dblock.download import DownloadError, download, human_bytes
 from dblock.lockfile import Entry, LockError, Lockfile
 from dblock.recipes import Recipe, RecipeError, load_recipes, parse_spec
 
@@ -232,14 +232,12 @@ def _fetch_one(args, lock: Lockfile, recipes: dict[str, Recipe], root: Path, ent
     archive = root / ".downloads" / entry.filename
     if not args.no_space_check and not _enough_space(args, root, archive, size, unpacked):
         return 1
-    used = download(entry.urls, archive, expected_size=size, quiet=args.quiet)
-    _log(args, f"  downloaded from {used}")
-
     algorithms = ["sha256"]
     upstream_algo, _, upstream_hex = entry.upstream_checksum.partition(":")
     if upstream_algo == "md5":
         algorithms.append("md5")
-    digests = hash_file(archive, tuple(algorithms), progress="" if args.quiet else "  hashing archive")
+    used, digests = download(entry.urls, archive, expected_size=size, quiet=args.quiet, algorithms=tuple(algorithms))
+    _log(args, f"  downloaded from {used}")
     if upstream_hex and digests[upstream_algo] != upstream_hex.lower():
         bad = _quarantine(archive)
         print(f"  PROBLEM: {upstream_algo} mismatch: upstream says {upstream_hex}, got {digests[upstream_algo]}. "

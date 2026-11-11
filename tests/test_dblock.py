@@ -16,10 +16,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from dblock import cli, compat, store
+from dblock import download as download_mod
 from dblock.lockfile import Entry, Lockfile
 from dblock.recipes import RecipeError, load_recipes, parse_spec
 
 FILES: dict[str, bytes] = {}  # url path -> bytes served
+NO_RANGE: set[str] = set()  # url paths whose server ignores Range and always sends the whole file
+TRUNCATE: dict[str, int] = {}  # url path -> bytes to send on the next request before dropping the connection
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -30,7 +33,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         start = 0
         rng = self.headers.get("Range")
-        if rng and rng.startswith("bytes="):
+        if rng and rng.startswith("bytes=") and self.path not in NO_RANGE:
             start = int(rng[6:].split("-")[0])
             self.send_response(206)
             self.send_header("Content-Range", f"bytes {start}-{len(body) - 1}/{len(body)}")
@@ -38,6 +41,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(200)
         self.send_header("Content-Length", str(len(body) - start))
         self.end_headers()
+        if self.path in TRUNCATE:
+            self.wfile.write(body[start:start + TRUNCATE.pop(self.path)])
+            self.close_connection = True
+            return
         self.wfile.write(body[start:])
 
     def log_message(self, *args):
@@ -78,6 +85,8 @@ class Base(unittest.TestCase):
 
     def setUp(self):
         FILES.clear()
+        NO_RANGE.clear()
+        TRUNCATE.clear()
         self.tmp = Path(tempfile.mkdtemp())
         self.recipes = self.tmp / "recipes"
         self.recipes.mkdir()
@@ -279,8 +288,8 @@ class TestFetchVerify(Base):
         self.run_cli("add", "toy")
         cli_download = cli.download
 
-        def no_retry(urls, dest, expected_size=0, retries=3, quiet=False):
-            return cli_download(urls, dest, expected_size, retries=1, quiet=quiet)
+        def no_retry(urls, dest, expected_size=0, retries=3, **kwargs):
+            return cli_download(urls, dest, expected_size, retries=1, **kwargs)
 
         cli.download = no_retry
         try:
@@ -442,6 +451,77 @@ class TestFetchVerify(Base):
         self.assertEqual(code, 2)
         self.assertIn("unknown database", err)
 
+
+class TestDownloadHashes(Base):
+    """download() hashes while writing; the result must equal a hash of the finished file."""
+
+    def setUp(self):
+        super().setUp()
+        self.data = os.urandom(3 * 1024 * 1024 + 123)  # spans several 1 MB chunks
+        self.url = self.serve("/blob.bin", self.data)
+        self.dest = self.tmp / "dl" / "blob.bin"
+        self.part = self.dest.with_name("blob.bin.part")
+        self.real_sleep = download_mod.time.sleep
+        download_mod.time.sleep = lambda s: None
+
+    def tearDown(self):
+        download_mod.time.sleep = self.real_sleep
+
+    def expected(self):
+        return {"sha256": hashlib.sha256(self.data).hexdigest(), "md5": hashlib.md5(self.data).hexdigest()}
+
+    def fetch(self):
+        used, digests = download_mod.download([self.url], self.dest, expected_size=len(self.data),
+                                              quiet=True, algorithms=("sha256", "md5"))
+        self.assertEqual(used, self.url)
+        self.assertEqual(self.dest.read_bytes(), self.data)
+        return digests
+
+    def write_part(self, n):
+        self.part.parent.mkdir(parents=True, exist_ok=True)
+        self.part.write_bytes(self.data[:n])
+
+    def test_fresh_download(self):
+        self.assertEqual(self.fetch(), self.expected())
+
+    def test_resumed_download(self):
+        self.write_part(1024 * 1024 + 7)
+        self.assertEqual(self.fetch(), self.expected())
+
+    def test_part_already_complete(self):
+        self.write_part(len(self.data))
+        self.assertEqual(self.fetch(), self.expected())
+
+    def test_server_ignores_range(self):
+        self.write_part(1024 * 1024 + 7)
+        NO_RANGE.add("/blob.bin")
+        self.assertEqual(self.fetch(), self.expected())
+
+    def test_retry_after_dropped_connection(self):
+        TRUNCATE["/blob.bin"] = 1536 * 1024
+        self.assertEqual(self.fetch(), self.expected())
+        self.assertNotIn("/blob.bin", TRUNCATE)  # the cut-off response was really served
+
+    def test_fetch_records_streamed_hash(self):
+        rel, data = self.simple_db()
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+        archive = self.store_dir / ".downloads" / "toy-1.tar.gz"
+        seen = []
+        patched = [(m, m.hash_file) for m in (cli, download_mod, store) if hasattr(m, "hash_file")]
+        for module, real in patched:
+            def spy(path, *a, _real=real, **k):
+                seen.append(Path(path))
+                return _real(path, *a, **k)
+            module.hash_file = spy
+        try:
+            self.assertEqual(self.run_cli("fetch")[0], 0)
+        finally:
+            for module, real in patched:
+                module.hash_file = real
+        self.assertTrue(seen)  # the unpacked files are still hashed for the manifest
+        self.assertNotIn(archive, seen)  # but the archive is not read a second time
+        self.assertEqual(Lockfile.load(self.lock).get("toy").archive_sha256, hashlib.sha256(data).hexdigest())
 
 class TestStoreLock(Base):
     def test_held_lock_blocks_fetch(self):

@@ -21,6 +21,11 @@ class DownloadError(Exception):
 
 def hash_file(path: Path, algorithms: tuple[str, ...] = ("sha256",), progress: str = "") -> dict[str, str]:
     hashers = {name: hashlib.new(name) for name in algorithms}
+    _hash_into(hashers, path, progress)
+    return {name: h.hexdigest() for name, h in hashers.items()}
+
+
+def _hash_into(hashers: dict, path: Path, progress: str = "") -> None:
     total = path.stat().st_size
     done = 0
     reporter = _Progress(progress, total) if progress else None
@@ -33,20 +38,23 @@ def hash_file(path: Path, algorithms: tuple[str, ...] = ("sha256",), progress: s
                 reporter.update(done)
     if reporter:
         reporter.finish()
-    return {name: h.hexdigest() for name, h in hashers.items()}
 
 
-def download(urls: list[str], dest: Path, expected_size: int = 0, retries: int = 3, quiet: bool = False) -> str:
-    """Download to dest, resuming a partial `dest.part`. Returns the URL that worked."""
+def download(urls: list[str], dest: Path, expected_size: int = 0, retries: int = 3, quiet: bool = False,
+             algorithms: tuple[str, ...] = ("sha256",)) -> tuple[str, dict[str, str]]:
+    """Download to dest, resuming a partial `dest.part`, hashing as it writes.
+
+    Returns the URL that worked and the file's hex digests, so the archive need not be read again.
+    """
     dest.parent.mkdir(parents=True, exist_ok=True)
     part = dest.with_name(dest.name + ".part")
     errors = []
     for url in urls:
         for attempt in range(1, retries + 1):
             try:
-                _fetch(url, part, expected_size, quiet)
+                digests = _fetch(url, part, expected_size, quiet, algorithms)
                 part.replace(dest)
-                return url
+                return url, digests
             except (urllib.error.URLError, OSError, DownloadError) as exc:
                 errors.append(f"{url} (attempt {attempt}): {exc}")
                 if not quiet:
@@ -55,13 +63,17 @@ def download(urls: list[str], dest: Path, expected_size: int = 0, retries: int =
     raise DownloadError("all download sources failed:\n  " + "\n  ".join(errors))
 
 
-def _fetch(url: str, part: Path, expected_size: int, quiet: bool) -> None:
+def _fetch(url: str, part: Path, expected_size: int, quiet: bool, algorithms: tuple[str, ...]) -> dict[str, str]:
+    hashers = {name: hashlib.new(name) for name in algorithms}
     have = part.stat().st_size if part.exists() else 0
-    if expected_size and have == expected_size:
-        return
     if expected_size and have > expected_size:
         part.unlink()
         have = 0
+    if have:  # bytes kept from an earlier, interrupted attempt
+        progress = "" if quiet or have < 256 * 1024 * 1024 else "  hashing partial download"
+        _hash_into(hashers, part, progress)
+    if expected_size and have == expected_size:
+        return {name: h.hexdigest() for name, h in hashers.items()}
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     if have:
         request.add_header("Range", f"bytes={have}-")
@@ -69,6 +81,7 @@ def _fetch(url: str, part: Path, expected_size: int, quiet: bool) -> None:
         status = getattr(response, "status", 200)
         if have and status != 206:
             have = 0  # server ignored the Range header: start again
+            hashers = {name: hashlib.new(name) for name in algorithms}
         length = response.headers.get("Content-Length")
         total = (have + int(length)) if length else expected_size
         if expected_size and total and total != expected_size:
@@ -78,6 +91,8 @@ def _fetch(url: str, part: Path, expected_size: int, quiet: bool) -> None:
             done = have
             while chunk := response.read(CHUNK):
                 out.write(chunk)
+                for h in hashers.values():
+                    h.update(chunk)
                 done += len(chunk)
                 if reporter:
                     reporter.update(done)
@@ -86,6 +101,7 @@ def _fetch(url: str, part: Path, expected_size: int, quiet: bool) -> None:
     size = part.stat().st_size
     if expected_size and size != expected_size:
         raise DownloadError(f"incomplete download: {size} of {expected_size} bytes")
+    return {name: h.hexdigest() for name, h in hashers.items()}
 
 
 class _Progress:
