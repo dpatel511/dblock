@@ -1,0 +1,62 @@
+name = "gunc"
+description = "GUNC reference databases (DIAMOND .dmnd) for chimerism and contamination detection"
+homepage = "https://grp-bork.embl-community.io/gunc/"
+tool = "gunc"
+version_command = ["gunc", "--version"]
+tool_env = "GUNC_DB"
+citation = "Orakov A et al. (2021) GUNC: detection of chimerism and contamination in prokaryotic genomes. Genome Biology 22:178"
+notes = [
+  "URLs, sizes and archive MD5s are from the Zenodo API, checked 2026-11-11; the MD5s match the ones in GUNC 1.1.1's gunc_database.py.",
+  "Each release is one gzipped DIAMOND file; dblock unpacks it to the .dmnd file GUNC reads from GUNC_DB or --db_file (gunc.py, checked against GUNC 1.1.1 source).",
+  "progenomes_2.1 is listed first because it is GUNC's default database. GUNC 1.1.1 also accepts progenomes_3 and gtdb_214; older GUNC versions were not checked, so no tool-version rule is stated.",
+  "Dates are the Zenodo publication dates of the records, not database build dates.",
+  "GUNC also publishes an MD5 of the unpacked .dmnd; dblock checks the archive MD5 and records its own SHA-256 of the unpacked file.",
+]
+
+[[releases]]
+version = "progenomes_2.1"
+date = "2026-04-17"
+filename = "gunc_db_progenomes2.1.dmnd.gz"
+format = "gz"
+size = 7185710760
+checksum = "md5:bc93a855e0760aad5c4e5f2d0e26da46"
+layout = ["gunc_db_progenomes2.1.dmnd"]
+tool_path = "gunc_db_progenomes2.1.dmnd"
+urls = ["https://zenodo.org/api/records/19631736/files/gunc_db_progenomes2.1.dmnd.gz/content"]
+note = "Zenodo record 19631736"
+
+[[releases]]
+version = "progenomes_3"
+date = "2026-04-17"
+filename = "gunc_db_progenomes3.dmnd.gz"
+format = "gz"
+size = 26668628374
+checksum = "md5:a26b3be496017f291eece27740d0f37f"
+layout = ["gunc_db_progenomes3.dmnd"]
+tool_path = "gunc_db_progenomes3.dmnd"
+urls = ["https://zenodo.org/api/records/19631883/files/gunc_db_progenomes3.dmnd.gz/content"]
+note = "Zenodo record 19631883"
+
+[[releases]]
+version = "gtdb_214"
+date = "2026-04-17"
+filename = "gunc_db_gtdb214.dmnd.gz"
+format = "gz"
+size = 37931646304
+checksum = "md5:3933007d83a7a85e4672295ee1f9d91f"
+layout = ["gunc_db_gtdb214.dmnd"]
+tool_path = "gunc_db_gtdb214.dmnd"
+urls = ["https://zenodo.org/api/records/19632326/files/gunc_db_gtdb214.dmnd.gz/content"]
+note = "Zenodo record 19632326"
+
+[[releases]]
+version = "gtdb_95"
+date = "2026-04-17"
+filename = "gunc_db_gtdb95.dmnd.gz"
+format = "gz"
+size = 19923665371
+checksum = "md5:14ed95a2fb1360925e28b7b55df14574"
+layout = ["gunc_db_gtdb95.dmnd"]
+tool_path = "gunc_db_gtdb95.dmnd"
+urls = ["https://zenodo.org/api/records/19631804/files/gunc_db_gtdb95.dmnd.gz/content"]
+note = "Zenodo record 19631804"

@@ -3,7 +3,8 @@
 For every release URL: the server must answer and report the recipe's size
 (only 1 byte is requested). For Zenodo releases: the file's checksum in the
 Zenodo API must match the recipe, and the record must still be the latest
-version. Exits 1 if anything differs, 2 on a usage error.
+version (records the same recipe already lists count, since some providers upload different
+databases as versions of one record). Exits 1 if anything differs, 2 on a usage error.
 
     python scripts/check_recipes.py [RECIPE_DIR]
 """
@@ -41,7 +42,12 @@ def zenodo_json(url: str) -> dict:
         return json.load(response)
 
 
-def check_release(name: str, rel: dict) -> list[str]:
+def zenodo_record(url: str) -> tuple[str, str] | None:
+    match = re.search(r"zenodo\.org/api/records/(\d+)/files/([^/]+)/content", url)
+    return match.groups() if match else None
+
+
+def check_release(name: str, rel: dict, recipe_records: set[str]) -> list[str]:
     problems = []
     label = f"{name}@{rel['version']}"
     for url in rel["urls"]:
@@ -67,7 +73,7 @@ def check_release(name: str, rel: dict) -> list[str]:
             problems.append(f"{label}: Zenodo checksum {upstream}, recipe checksum {rel.get('checksum')}")
         else:
             print(f"ok    {label}: Zenodo checksum {upstream}")
-        if str(latest["id"]) != record_id:
+        if str(latest["id"]) not in recipe_records:
             problems.append(f"{label}: Zenodo record {record_id} is not the latest version; latest is "
                             f"{latest['id']} (version {latest['metadata'].get('version')})")
     return problems
@@ -82,8 +88,9 @@ def main(argv: list[str]) -> int:
     problems = []
     for path in sorted(root.glob("*.toml")):
         recipe = tomllib.loads(path.read_text(encoding="utf-8"))
+        records = {zenodo_record(r["urls"][0])[0] for r in recipe["releases"] if zenodo_record(r["urls"][0])}
         for rel in recipe["releases"]:
-            problems += check_release(recipe["name"], rel)
+            problems += check_release(recipe["name"], rel, records)
     for problem in problems:
         print(f"PROBLEM {problem}")
     return 1 if problems else 0
