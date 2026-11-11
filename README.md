@@ -4,7 +4,23 @@
 
 > Status: early development (`0.2.0`). Commands and file formats may still change.
 
-Tools like GTDB-Tk, Kraken 2, CheckM2 and Bakta depend on large reference databases. Each tool downloads its database differently, often fetching "latest", and pipelines usually record the tool version but not the database release or checksum. dblock adds the missing piece: a small `dblock.lock` file, committed with your code, that says exactly which database files were used.
+Tools like GTDB-Tk, Kraken 2, CheckM2 and Bakta depend on large reference databases. Each tool downloads its database differently, and pipelines usually record the tool version but not the database release or checksum. dblock adds a small `dblock.lock` file, committed with your code, that says exactly which database files were used, plus commands that fetch, check and point the tools at them.
+
+## What it prevents
+
+The first four rows are problems users have reported in the tools' issue trackers; the last three are about reproducing an analysis and sharing databases on one server.
+
+| Without dblock | With dblock |
+|---|---|
+| The tool is pointed at the wrong place, e.g. `GTDBTK_DATA_PATH` set to the downloaded `.tar.gz` instead of the unpacked folder ([GTDBTk#648](https://github.com/Ecogenomics/GTDBTk/issues/648)) | `eval "$(dblock env)"` sets each tool's variable to the folder or file it expects |
+| A blocked or truncated download is saved as the database, e.g. an HTML "403 Forbidden" page from Zenodo ([bakta#419](https://github.com/oschwengers/bakta/issues/419)) | `fetch` refuses an error response or a file of the wrong size before saving it, checks the provider's checksum, and never installs a bad download (a checksum mismatch is kept as `.bad` for inspection) |
+| A failed 30 GB download starts again from zero ([bakta#374](https://github.com/oschwengers/bakta/issues/374)) | `fetch` resumes from the partial file |
+| The tool and database versions do not match, found only when the job fails ([bakta#406](https://github.com/oschwengers/bakta/issues/406)) | `dblock check-compat` checks before the run, where the recipe states a rule (GTDB-Tk, Bakta) |
+| "Which GTDB release did you use?" The paper names the tool version only, but taxonomy changes between releases | `dblock provenance` prints release, source URL and checksum for the methods section |
+| The same database on another machine, or a year later, is not the same file | `fetch` from the lockfile checks the archive's SHA-256 against the one recorded the first time |
+| On a shared server, two people download the same 100+ GB package at once, or a download fills the disk hours in | One shared store with a lock per database, and a free-space check before downloading |
+
+dblock does not build databases, run the tools, or fix problems between a tool and its own dependencies (see the Bakta note in `dblock recipes bakta`).
 
 ## Install
 
