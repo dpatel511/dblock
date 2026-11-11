@@ -2,7 +2,7 @@
 
 **Lockfiles for bioinformatics reference databases.** Pin the exact releases an analysis uses, fetch and verify them, check they match your tool versions, and print provenance you can paste into a methods section.
 
-> Status: early development (`0.1.2`). Commands and file formats may still change.
+> Status: early development (`0.2.0`). Commands and file formats may still change.
 
 Tools like GTDB-Tk, Kraken 2, CheckM2 and Bakta depend on large reference databases. Each tool downloads its database differently, often fetching "latest", and pipelines usually record the tool version but not the database release or checksum. dblock adds the missing piece: a small `dblock.lock` file, committed with your code, that says exactly which database files were used.
 
