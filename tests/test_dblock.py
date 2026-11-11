@@ -409,6 +409,34 @@ class TestFetchVerify(Base):
         self.assertEqual(code, 1)
         self.assertIn("INCOMPATIBLE", out)
 
+    def test_check_compat_strict_requires_ok(self):
+        rel_ok, _ = self.simple_db(name="good")
+        rel_ok["tool_versions"] = ">=3.11"
+        self.write_recipe("good", [rel_ok])
+        rel_none, _ = self.simple_db(name="norule")
+        self.write_recipe("norule", [rel_none])
+        self.run_cli("add", "good")
+        code, out, _ = self.run_cli("check-compat", "--strict")
+        self.assertEqual(code, 0, out)
+        self.run_cli("add", "norule")
+        code, out, _ = self.run_cli("check-compat")  # default unchanged: NO-RULE is not a failure
+        self.assertEqual(code, 0, out)
+        code, out, err = self.run_cli("check-compat", "--strict")
+        self.assertEqual(code, 1)
+        self.assertIn("norule@1: NO-RULE", out)
+        self.assertIn("1 of 2", err)
+
+    def test_check_compat_strict_fails_when_tool_missing(self):
+        rel, _ = self.simple_db()
+        rel["tool_versions"] = ">=1"
+        text = recipe_toml("toy", [rel]).replace('["python", "--version"]', '["dblock-no-such-tool", "--version"]')
+        (self.recipes / "toy.toml").write_text(text, encoding="utf-8")
+        self.run_cli("add", "toy")
+        code, out, _ = self.run_cli("check-compat")
+        self.assertEqual(code, 0)
+        self.assertIn("TOOL-NOT-FOUND", out)
+        self.assertEqual(self.run_cli("check-compat", "--strict")[0], 1)
+
     def test_unknown_database(self):
         code, _, err = self.run_cli("add", "nope")
         self.assertEqual(code, 2)
