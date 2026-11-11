@@ -1,0 +1,28 @@
+name = "genomad"
+description = "geNomad marker database for virus and plasmid identification"
+homepage = "https://portal.nersc.gov/genomad/"
+tool = "genomad"
+version_command = ["genomad", "--version"]
+tool_env = "GENOMAD_DB"
+citation = "Camargo AP et al. (2024) Identification of mobile genetic elements with geNomad. Nature Biotechnology 42:1303-1312"
+notes = [
+  "URL, size and MD5 are from the Zenodo API (record 14886553), checked 2026-11-11; the NERSC copy that geNomad's own downloader uses has the same size.",
+  "Tool-version rule from geNomad's releases.txt (https://portal.nersc.gov/genomad/__data__/releases.txt), checked 2026-11-11: database 1.9 is listed for geNomad 1.10 to 1.13. Newer geNomad versions may be added upstream later.",
+  "geNomad reads the genomad_db folder from GENOMAD_DB or its database argument (cli.py, checked against geNomad 1.13.0 source). Use `dblock env` or `dblock path genomad --tool`.",
+  "The archive contains 8 relative links inside genomad_db/ (genomad_mini_db* -> genomad_db*), checked by a real dblock fetch on 2026-11-11.",
+  "unpacked_size is the sum of the regular files (1.47 GB). dblock's manifest counts each link as a file with its target's size, so the lockfile records 2.89 GB; on Windows the links are extracted as copies and use that much disk.",
+]
+
+[[releases]]
+version = "1.9"
+date = "2025-02-18"
+filename = "genomad_db_v1.9.tar.gz"
+format = "tar.gz"
+size = 842023773
+unpacked_size = 1471626195
+checksum = "md5:67244b528bb8bed464d1ca147136d33e"
+tool_versions = ">=1.10,<1.14"
+layout = ["genomad_db/version.txt", "genomad_db/genomad_db"]
+tool_path = "genomad_db"
+urls = ["https://zenodo.org/api/records/14886553/files/genomad_db_v1.9.tar.gz/content", "https://portal.nersc.gov/genomad/__data__/genomad_db_v1.9.tar.gz"]
+note = "Zenodo record 14886553; layout from the archive listing, 2026-11-11"
