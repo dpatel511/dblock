@@ -87,6 +87,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = cmd("check-compat", cmd_check_compat, "check installed tool versions against each database release")
     p.add_argument("names", nargs="*")
+    p.add_argument("--strict", action="store_true",
+                   help="exit 1 unless every database is OK (also fails NO-RULE, TOOL-NOT-FOUND, UNKNOWN-VERSION)")
 
     p = cmd("provenance", cmd_provenance, "print exact database provenance for a methods section or report")
     p.add_argument("--format", choices=("text", "json"), default="text")
@@ -397,8 +399,9 @@ def cmd_env(args) -> int:
 def cmd_check_compat(args) -> int:
     lock = Lockfile.load(args.lock)
     recipes = load_recipes(args.recipes)
-    bad = 0
-    for entry in lock.select(args.names):
+    bad = not_ok = 0
+    entries = lock.select(args.names)
+    for entry in entries:
         recipe = recipes.get(entry.name)
         command = recipe.version_command if recipe else ()
         regex = recipe.version_regex if recipe else r"(\d+(?:\.\d+)+)"
@@ -407,6 +410,11 @@ def cmd_check_compat(args) -> int:
         found = f" {result.tool_version}" if result.tool_version else ""
         print(f"{entry.name}@{entry.release}: {result.status.upper()} ({tool}{found}; {result.detail})")
         bad += result.status == "incompatible"
+        not_ok += result.status != "ok"
+    if args.strict:
+        if not_ok:
+            print(f"strict: {not_ok} of {len(entries)} databases not confirmed compatible", file=sys.stderr)
+        return PROBLEMS if not_ok else OK
     return PROBLEMS if bad else OK
 
 

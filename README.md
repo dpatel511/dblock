@@ -26,6 +26,7 @@ dblock fetch                         # download (resumable), check checksums, un
 dblock verify                        # fast check: file names and sizes
 dblock verify --full                 # re-hash every file
 dblock check-compat                  # are installed tools compatible with these releases?
+dblock check-compat --strict         # for CI: also fail on NO-RULE, TOOL-NOT-FOUND, UNKNOWN-VERSION
 dblock provenance                    # text for a methods section (or --format json)
 
 eval "$(dblock env)"                 # export GTDBTK_DATA_PATH, CHECKM2DB, ... for the locked databases
@@ -115,7 +116,7 @@ urls = ["https://example.org/mydb-2.tar.gz", "https://mirror.example.org/mydb-2.
 
 ## Exit codes
 
-`0` success · `1` problems found (failed verification, checksum mismatch, incompatible tool) · `2` usage or runtime error. Progress goes to stderr, results to stdout.
+`0` success · `1` problems found (failed verification, checksum mismatch, incompatible tool; with `check-compat --strict`, any result other than OK) · `2` usage or runtime error. Progress goes to stderr, results to stdout.
 
 ## Development
 
