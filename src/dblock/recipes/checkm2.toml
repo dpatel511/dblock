@@ -5,7 +5,7 @@ tool = "checkm2"
 version_command = ["checkm2", "--version"]
 tool_env = "CHECKM2DB"
 citation = "Chklovski A et al. (2023) CheckM2: a rapid, scalable and accurate tool for assessing microbial genome quality using machine learning. Nature Methods 20:1203-1212"
-notes = ["CheckM2 reads the .dmnd file from CHECKM2DB or --database_path (defaultValues.py, checked against CheckM2 1.1.0 source, 2026-11-10). Use `dblock env` or `dblock path checkm2 --tool`."]
+notes = ["CheckM2 reads the .dmnd file from CHECKM2DB or --database_path (defaultValues.py, checked against CheckM2 1.1.0 source, 2026-11-10). Use `dblock env` or `dblock path checkm2 --tool`.", "unpacked_size was measured by dblock fetch on 2026-11-10 (see VALIDATION.md)."]
 
 [[releases]]
 version = "3"
@@ -13,6 +13,7 @@ date = "2025-02-20"
 filename = "checkm2_database.tar.gz"
 format = "tar.gz"
 size = 1735095710
+unpacked_size = 3082500727
 checksum = "md5:07c10655620843b517d0df0c160d911f"
 layout = ["CheckM2_database/uniref100.KO.1.dmnd"]
 tool_path = "CheckM2_database/uniref100.KO.1.dmnd"

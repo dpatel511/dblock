@@ -23,6 +23,7 @@ class Release:
     format: str
     checksum: str = ""  # upstream checksum as "md5:<hex>" or "sha256:<hex>"; empty if none published
     size: int = 0
+    unpacked_size: int = 0  # bytes after unpacking, when measured; 0 = unknown
     date: str = ""
     tool_versions: str = ""  # e.g. ">=2.4.1,<=2.6.1"
     layout: tuple[str, ...] = ()  # paths (or glob patterns) that must exist after unpacking
@@ -83,6 +84,7 @@ def _parse(text: str, source: str) -> Recipe:
             format=raw["format"],
             checksum=checksum,
             size=int(raw.get("size", 0)),
+            unpacked_size=int(raw.get("unpacked_size", 0)),
             date=str(raw.get("date", "")),
             tool_versions=raw.get("tool_versions", ""),
             layout=tuple(raw.get("layout", ())),

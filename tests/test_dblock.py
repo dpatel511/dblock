@@ -443,6 +443,74 @@ class TestFetchVerify(Base):
         self.assertIn("unknown database", err)
 
 
+class TestFreeSpace(Base):
+    def setUp(self):
+        super().setUp()
+        self.free = 0
+        self.real_free = cli._free_bytes
+        cli._free_bytes = lambda path: self.free
+
+    def tearDown(self):
+        cli._free_bytes = self.real_free
+
+    def toy(self, unpacked_size=None):
+        rel, data = self.simple_db()
+        if unpacked_size is not None:
+            rel["unpacked_size"] = unpacked_size
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+        return len(data)
+
+    def test_not_enough_space_downloads_nothing(self):
+        size = self.toy()
+        self.free = 2 * size - 1  # archive + (unknown unpacked size, assumed >= archive)
+        code, _, err = self.run_cli("fetch")
+        self.assertEqual(code, 1)
+        self.assertIn("not enough free space", err)
+        self.assertIn("at least", err)
+        self.assertFalse((self.store_dir / ".downloads").exists())
+        self.assertFalse(Lockfile.load(self.lock).get("toy").fetched)
+
+    def test_enough_space_fetches(self):
+        size = self.toy()
+        self.free = 2 * size
+        code, _, err = self.run_cli("fetch")
+        self.assertEqual(code, 0, err)
+
+    def test_unpacked_size_from_recipe_is_used(self):
+        size = self.toy(unpacked_size=10 * 1024 * 1024)
+        self.free = 2 * size + 1024  # enough for the archive twice, not for 10 MB unpacked
+        code, _, err = self.run_cli("fetch")
+        self.assertEqual(code, 1)
+        self.assertIn("not enough free space", err)
+        self.assertNotIn("at least", err)
+
+    def test_partial_download_counts_as_already_used(self):
+        size = self.toy()
+        part = self.store_dir / ".downloads" / "toy-1.tar.gz.part"
+        part.parent.mkdir(parents=True)
+        part.write_bytes(FILES["/toy-1.tar.gz"][: size // 2])
+        self.free = (size - size // 2) + size  # the rest of the download + unpacked
+        code, _, err = self.run_cli("fetch")
+        self.assertEqual(code, 0, err)
+
+    def test_no_space_check_skips_it(self):
+        self.toy()
+        self.free = 0
+        code, _, err = self.run_cli("fetch", "--no-space-check")
+        self.assertEqual(code, 0, err)
+
+    def test_unknown_size_skips_check_with_note(self):
+        rel, _ = self.simple_db()
+        del rel["size"]
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+        self.free = 0
+        code, _, err = self.run_cli("fetch")
+        self.assertEqual(code, 0, err)
+        self.assertIn("free-space check skipped", err)
+
+
 class TestToolPaths(Base):
     def install(self, name="toy", tool_env="TOY_DB", tool_path="toy", fetch=True):
         rel, _ = self.simple_db(name=name)

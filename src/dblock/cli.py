@@ -70,6 +70,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("names", nargs="*", help="default: all locked databases")
     p.add_argument("--keep-archive", action="store_true", help="keep the downloaded archive after unpacking")
     p.add_argument("--force", action="store_true", help="re-download even if already installed")
+    p.add_argument("--no-space-check", action="store_true",
+                   help="skip the free-space check (e.g. where reported free space does not match a quota)")
 
     p = cmd("verify", cmd_verify, "check installed files against the lockfile (fast: names and sizes)")
     p.add_argument("names", nargs="*")
@@ -204,15 +206,18 @@ def cmd_fetch(args) -> int:
             _log(args, f"  already installed at {target}")
             continue
         recipe = _recipe_for(entry, recipes, args)
-        size = 0
+        size = unpacked = 0
         layout: tuple[str, ...] = ()
         if recipe:
             try:
                 rel = recipe.release(entry.release)
-                size, layout = rel.size, rel.layout
+                size, unpacked, layout = rel.size, rel.unpacked_size, rel.layout
             except RecipeError:
                 pass
         archive = root / ".downloads" / entry.filename
+        if not args.no_space_check and not _enough_space(args, root, archive, size, unpacked):
+            problems += 1
+            continue
         used = download(entry.urls, archive, expected_size=size, quiet=args.quiet)
         _log(args, f"  downloaded from {used}")
 
@@ -268,6 +273,30 @@ def cmd_fetch(args) -> int:
         lock.save()
     lock.save()
     return PROBLEMS if problems else OK
+
+
+def _free_bytes(path: Path) -> int:
+    while not path.exists() and path != path.parent:
+        path = path.parent
+    return shutil.disk_usage(path).free
+
+
+def _enough_space(args, root: Path, archive: Path, size: int, unpacked: int) -> bool:
+    """Peak use is the rest of the download plus the unpacked copy (the archive is removed afterwards)."""
+    if not size:
+        _log(args, "  archive size unknown; free-space check skipped")
+        return True
+    part = archive.with_name(archive.name + ".part")
+    to_download = max(size - (part.stat().st_size if part.exists() else 0), 0)
+    to_unpack = unpacked or size
+    free = _free_bytes(root)
+    if free >= to_download + to_unpack:
+        return True
+    unpack_text = (f"{human_bytes(to_unpack)} unpacked" if unpacked else
+                   f"at least {human_bytes(to_unpack)} unpacked (unpacked size unknown; assumed no smaller than the archive)")
+    print(f"  PROBLEM: not enough free space in {root}: needs {human_bytes(to_download)} to download + {unpack_text}, "
+          f"{human_bytes(free)} free. Nothing was downloaded; use --no-space-check to try anyway", file=sys.stderr)
+    return False
 
 
 def _quarantine(archive: Path) -> Path:

@@ -44,6 +44,8 @@ dblock path checkm2 --tool           # just the path the tool expects (here the 
 
 Databases are stored in `$DBLOCK_STORE` (default `~/.dblock/store`), one folder per name and release, so several releases can live side by side on a shared server.
 
+Before downloading, `fetch` checks the store has room for the rest of the download plus the unpacked copy (the archive is removed afterwards). Where a recipe has no measured `unpacked_size`, it assumes the unpacked data is at least as large as the archive and says so. `fetch --no-space-check` skips the check, for example where reported free space does not match a quota.
+
 ## What gets checked
 
 | Check | When | What it catches |
@@ -107,6 +109,7 @@ version = "2"
 filename = "mydb-2.tar.gz"
 format = "tar.gz"            # tar.gz, tar.xz, tar.bz2, tar, zip, gz or file
 size = 123456
+unpacked_size = 456789       # optional: measured size after unpacking, for the free-space check
 checksum = "md5:…"           # optional
 tool_versions = ">=1.4,<2"   # optional
 layout = ["mydb/index.bin"]  # optional: must exist after unpacking (globs allowed)

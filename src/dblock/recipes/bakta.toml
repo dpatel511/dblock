@@ -7,6 +7,7 @@ tool_env = "BAKTA_DB"
 citation = "Schwengers O et al. (2021) Bakta: rapid and standardized annotation of bacterial genomes via alignment-free sequence identification. Microbial Genomics 7(11):000685"
 notes = [
   "Minimum Bakta versions are from the database's db-versions.json on Zenodo.",
+  "unpacked_size for 6.0-light was measured by dblock fetch on 2026-11-10 (see VALIDATION.md); other releases have none, so the free-space check assumes at least the archive size.",
   "Bakta reads the db folder from BAKTA_DB or --db (config.py, checked against Bakta 1.12.2 source, 2026-11-10). Use `dblock env` or `dblock path bakta --tool`.",
 ]
 
@@ -16,6 +17,7 @@ date = "2025-02-24"
 filename = "db-light.tar.xz"
 format = "tar.xz"
 size = 1344199496
+unpacked_size = 3994877552
 checksum = "md5:4a6e059ded39e9c5537ef4137d2f5648"
 tool_versions = ">=1.11"
 layout = ["db-light/version.json"]
