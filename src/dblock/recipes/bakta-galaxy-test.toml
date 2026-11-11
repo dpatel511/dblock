@@ -5,6 +5,7 @@ tool_env = "BAKTA_DB"
 notes = [
   "Test data only, not for annotation.",
   "The Zenodo record is labelled 6.0, but the archive contains a folder named V5.1_light_2024-01-19.",
+  "unpacked_size was measured by dblock fetch on 2026-11-10.",
 ]
 
 [[releases]]
@@ -13,6 +14,7 @@ date = "2026-09-04"
 filename = "bakta-galaxy-test-db-light.tar.gz"
 format = "tar.gz"
 size = 390214
+unpacked_size = 1462444
 checksum = "md5:29ac0addf985d7255c0928326a67178c"
 layout = ["V5.1_light_2024-01-19/version.json", "V5.1_light_2024-01-19/bakta.db"]
 tool_path = "V5.1_light_2024-01-19"
