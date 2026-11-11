@@ -192,87 +192,96 @@ def cmd_fetch(args) -> int:
     problems = 0
     for entry in lock.select(args.names):
         _log(args, f"{entry.name}@{entry.release}")
-        target = store.data_dir(root, entry.name, entry.release)
-        manifest_path = store.install_dir(root, entry.name, entry.release) / "manifest.json"
-        if manifest_path.exists() and not args.force:
-            manifest = store.Manifest.load(manifest_path)
-            if entry.tree_digest and manifest.digest != entry.tree_digest:
-                print(f"  PROBLEM: installed copy differs from the lockfile (digest {manifest.digest}); "
-                      f"use --force to re-fetch", file=sys.stderr)
-                problems += 1
-                continue
-            if not entry.fetched:
-                _record(entry, manifest)
-            _log(args, f"  already installed at {target}")
-            continue
-        recipe = _recipe_for(entry, recipes, args)
-        size = unpacked = 0
-        layout: tuple[str, ...] = ()
-        if recipe:
-            try:
-                rel = recipe.release(entry.release)
-                size, unpacked, layout = rel.size, rel.unpacked_size, rel.layout
-            except RecipeError:
-                pass
-        archive = root / ".downloads" / entry.filename
-        if not args.no_space_check and not _enough_space(args, root, archive, size, unpacked):
+        locks = root / ".locks"
+        try:
+            with store.lock(locks / f"{entry.name}@{entry.release}.lock"), \
+                    store.lock(locks / f"{entry.filename}.download.lock"):
+                problems += _fetch_one(args, lock, recipes, root, entry)
+        except store.StoreBusy:
+            print(f"  PROBLEM: another dblock process is fetching {entry.name}@{entry.release} "
+                  f"(or its archive {entry.filename}) into this store; run fetch again when it has finished",
+                  file=sys.stderr)
             problems += 1
-            continue
-        used = download(entry.urls, archive, expected_size=size, quiet=args.quiet)
-        _log(args, f"  downloaded from {used}")
-
-        algorithms = ["sha256"]
-        upstream_algo, _, upstream_hex = entry.upstream_checksum.partition(":")
-        if upstream_algo == "md5":
-            algorithms.append("md5")
-        digests = hash_file(archive, tuple(algorithms), progress="" if args.quiet else "  hashing archive")
-        if upstream_hex and digests[upstream_algo] != upstream_hex.lower():
-            bad = _quarantine(archive)
-            print(f"  PROBLEM: {upstream_algo} mismatch: upstream says {upstream_hex}, got {digests[upstream_algo]}. "
-                  f"Kept as {bad.name}", file=sys.stderr)
-            problems += 1
-            continue
-        if entry.archive_sha256 and digests["sha256"] != entry.archive_sha256:
-            bad = _quarantine(archive)
-            print(f"  PROBLEM: the file served now differs from the locked archive "
-                  f"(locked sha256 {entry.archive_sha256}, got {digests['sha256']}). "
-                  f"Upstream may have replaced it. Kept as {bad.name}", file=sys.stderr)
-            problems += 1
-            continue
-        origin = "upstream-verified" if upstream_hex else "first-download"
-        _log(args, "  checksum: " + ("matches upstream " + upstream_algo if upstream_hex
-                                     else "no upstream checksum; recording sha256 from this download"))
-
-        _log(args, f"  unpacking ({entry.format})")
-        store.unpack(archive, entry.format, target)
-        missing = store.check_layout(target, layout)
-        if missing:
-            # Not installed: a later fetch must not find and accept it.
-            shutil.rmtree(target)
-            manifest_path.unlink(missing_ok=True)
-            bad = _quarantine(archive)
-            print(f"  PROBLEM: unpacked files do not match the expected layout; missing: {', '.join(missing)}. "
-                  f"Nothing was installed; kept the archive as {bad.name}", file=sys.stderr)
-            problems += 1
-            continue
-        manifest = store.build_manifest(entry.name, entry.release, digests["sha256"], target, args.quiet)
-        manifest.save(manifest_path)
-        if entry.tree_digest and manifest.digest != entry.tree_digest:
-            # Keep the install for inspection, but never overwrite the locked digest.
-            print(f"  PROBLEM: unpacked contents differ from the lockfile digest "
-                  f"(locked {entry.tree_digest}, got {manifest.digest})", file=sys.stderr)
-            problems += 1
-            continue
-        entry.archive_sha256 = digests["sha256"]
-        if not entry.checksum_origin:
-            entry.checksum_origin = origin
-        _record(entry, manifest)
-        if not args.keep_archive:
-            archive.unlink()
-        _log(args, f"  installed {human_bytes(manifest.total_bytes)} in {len(manifest.files)} files at {target}")
-        lock.save()
     lock.save()
     return PROBLEMS if problems else OK
+
+
+def _fetch_one(args, lock: Lockfile, recipes: dict[str, Recipe], root: Path, entry: Entry) -> int:
+    """Fetch one locked database; return 1 if a problem was reported."""
+    target = store.data_dir(root, entry.name, entry.release)
+    manifest_path = store.install_dir(root, entry.name, entry.release) / "manifest.json"
+    if manifest_path.exists() and not args.force:
+        manifest = store.Manifest.load(manifest_path)
+        if entry.tree_digest and manifest.digest != entry.tree_digest:
+            print(f"  PROBLEM: installed copy differs from the lockfile (digest {manifest.digest}); "
+                  f"use --force to re-fetch", file=sys.stderr)
+            return 1
+        if not entry.fetched:
+            _record(entry, manifest)
+        _log(args, f"  already installed at {target}")
+        return 0
+    recipe = _recipe_for(entry, recipes, args)
+    size = unpacked = 0
+    layout: tuple[str, ...] = ()
+    if recipe:
+        try:
+            rel = recipe.release(entry.release)
+            size, unpacked, layout = rel.size, rel.unpacked_size, rel.layout
+        except RecipeError:
+            pass
+    archive = root / ".downloads" / entry.filename
+    if not args.no_space_check and not _enough_space(args, root, archive, size, unpacked):
+        return 1
+    used = download(entry.urls, archive, expected_size=size, quiet=args.quiet)
+    _log(args, f"  downloaded from {used}")
+
+    algorithms = ["sha256"]
+    upstream_algo, _, upstream_hex = entry.upstream_checksum.partition(":")
+    if upstream_algo == "md5":
+        algorithms.append("md5")
+    digests = hash_file(archive, tuple(algorithms), progress="" if args.quiet else "  hashing archive")
+    if upstream_hex and digests[upstream_algo] != upstream_hex.lower():
+        bad = _quarantine(archive)
+        print(f"  PROBLEM: {upstream_algo} mismatch: upstream says {upstream_hex}, got {digests[upstream_algo]}. "
+              f"Kept as {bad.name}", file=sys.stderr)
+        return 1
+    if entry.archive_sha256 and digests["sha256"] != entry.archive_sha256:
+        bad = _quarantine(archive)
+        print(f"  PROBLEM: the file served now differs from the locked archive "
+              f"(locked sha256 {entry.archive_sha256}, got {digests['sha256']}). "
+              f"Upstream may have replaced it. Kept as {bad.name}", file=sys.stderr)
+        return 1
+    origin = "upstream-verified" if upstream_hex else "first-download"
+    _log(args, "  checksum: " + ("matches upstream " + upstream_algo if upstream_hex
+                                 else "no upstream checksum; recording sha256 from this download"))
+
+    _log(args, f"  unpacking ({entry.format})")
+    store.unpack(archive, entry.format, target)
+    missing = store.check_layout(target, layout)
+    if missing:
+        # Not installed: a later fetch must not find and accept it.
+        shutil.rmtree(target)
+        manifest_path.unlink(missing_ok=True)
+        bad = _quarantine(archive)
+        print(f"  PROBLEM: unpacked files do not match the expected layout; missing: {', '.join(missing)}. "
+              f"Nothing was installed; kept the archive as {bad.name}", file=sys.stderr)
+        return 1
+    manifest = store.build_manifest(entry.name, entry.release, digests["sha256"], target, args.quiet)
+    manifest.save(manifest_path)
+    if entry.tree_digest and manifest.digest != entry.tree_digest:
+        # Keep the install for inspection, but never overwrite the locked digest.
+        print(f"  PROBLEM: unpacked contents differ from the lockfile digest "
+              f"(locked {entry.tree_digest}, got {manifest.digest})", file=sys.stderr)
+        return 1
+    entry.archive_sha256 = digests["sha256"]
+    if not entry.checksum_origin:
+        entry.checksum_origin = origin
+    _record(entry, manifest)
+    if not args.keep_archive:
+        archive.unlink()
+    _log(args, f"  installed {human_bytes(manifest.total_bytes)} in {len(manifest.files)} files at {target}")
+    lock.save()
+    return 0
 
 
 def _free_bytes(path: Path) -> int:
