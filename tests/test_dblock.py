@@ -443,6 +443,48 @@ class TestFetchVerify(Base):
         self.assertIn("unknown database", err)
 
 
+class TestStoreLock(Base):
+    def test_held_lock_blocks_fetch(self):
+        rel, _ = self.simple_db()
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+        with store.lock(self.store_dir / ".locks" / "toy@1.lock"):
+            code, _, err = self.run_cli("fetch")
+        self.assertEqual(code, 1)
+        self.assertIn("another dblock process", err)
+        self.assertFalse((self.store_dir / ".downloads" / "toy-1.tar.gz.part").exists())
+        self.assertFalse(Lockfile.load(self.lock).get("toy").fetched)
+        code, _, err = self.run_cli("fetch")  # released: works now
+        self.assertEqual(code, 0, err)
+
+    def test_held_download_lock_blocks_fetch(self):
+        # Two releases (or recipes) can share an archive filename.
+        rel, _ = self.simple_db()
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+        with store.lock(self.store_dir / ".locks" / "toy-1.tar.gz.download.lock"):
+            code, _, err = self.run_cli("fetch")
+        self.assertEqual(code, 1)
+        self.assertIn("another dblock process", err)
+
+    def test_lock_is_exclusive_and_released(self):
+        path = self.tmp / "x.lock"
+        with store.lock(path):
+            with self.assertRaises(store.StoreBusy):
+                with store.lock(path):
+                    pass
+        with store.lock(path):  # free again after the first holder exits
+            pass
+
+    def test_lock_files_stay_out_of_manifest(self):
+        rel, _ = self.simple_db()
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+        self.assertEqual(self.run_cli("fetch")[0], 0)
+        self.assertEqual(self.run_cli("verify", "--full")[0], 0)
+        self.assertEqual(Lockfile.load(self.lock).get("toy").files, 2)
+
+
 class TestFreeSpace(Base):
     def setUp(self):
         super().setUp()

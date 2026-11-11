@@ -7,6 +7,7 @@ Layout:  <store>/<name>/<release>/data/...         unpacked database
 
 from __future__ import annotations
 
+import contextlib
 import fnmatch
 import gzip
 import hashlib
@@ -20,11 +21,49 @@ from pathlib import Path, PurePosixPath
 
 from dblock.download import hash_file
 
+if os.name == "nt":
+    import msvcrt
+else:
+    import fcntl
+
 MANIFEST_VERSION = 1
 
 
 class StoreError(Exception):
     pass
+
+
+class StoreBusy(StoreError):
+    pass
+
+
+@contextlib.contextmanager
+def lock(path: Path):
+    """Exclusive, non-blocking lock on path. The OS releases it if the process dies.
+
+    The lock file is left in place: deleting it would let two processes lock different files.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle = path.open("a+b")
+    try:
+        try:
+            if os.name == "nt":
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            raise StoreBusy(f"locked by another process: {path}") from None
+        try:
+            yield
+        finally:
+            if os.name == "nt":
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    finally:
+        handle.close()
 
 
 def default_store() -> Path:
