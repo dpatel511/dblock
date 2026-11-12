@@ -80,6 +80,8 @@ When a provider publishes no checksum (GTDB, one older Kraken 2 index), dblock r
 
 [VALIDATION.md](VALIDATION.md) records real runs against upstream databases and the tools that use them.
 
+[docs/pipelines.md](docs/pipelines.md) shows dblock in Snakemake and Nextflow pipelines.
+
 ## The lockfile
 
 ```toml
