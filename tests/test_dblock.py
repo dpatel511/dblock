@@ -255,6 +255,30 @@ class TestFetchVerify(Base):
         entry = Lockfile.load(self.lock).get("toy")
         self.assertEqual(entry.checksum_origin, "first-download")
         self.assertEqual(entry.archive_sha256, hashlib.sha256(data).hexdigest())
+        code, out, _ = self.run_cli("provenance")
+        self.assertIn("no upstream checksum published; hash recorded at first download", out)
+
+    def test_second_lockfile_on_shared_store_has_honest_provenance(self):
+        # Project A fetches; project B locks the same release and finds it already in the store.
+        rel, _ = self.simple_db()  # has an upstream MD5
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+        self.assertEqual(self.run_cli("fetch")[0], 0)
+        code, out, _ = self.run_cli("provenance")
+        self.assertIn("verified against upstream checksum", out)
+
+        self.lock = self.tmp / "project-b.lock"
+        self.run_cli("add", "toy")
+        code, _, err = self.run_cli("fetch")
+        self.assertEqual(code, 0, err)
+        self.assertIn("already installed", err)
+        self.assertEqual(Lockfile.load(self.lock).get("toy").checksum_origin, "")  # not upgraded
+        code, out, _ = self.run_cli("provenance")
+        self.assertNotIn("no upstream checksum published", out)
+        self.assertNotIn("verified against upstream", out)
+        self.assertIn("checksum origin not recorded", out)
+        code, out, _ = self.run_cli("provenance", "--format", "json")
+        self.assertEqual(json.loads(out)["databases"][0]["checksum_origin"], "")
 
     def test_silent_upstream_change_is_caught(self):
         rel, _ = self.simple_db(checksum=False)

@@ -76,7 +76,7 @@ On a shared store, two `fetch` runs never work on the same database or archive a
 | Tree digest and per-file manifest | `verify` | Files deleted, added or modified after install |
 | Tool-version rules | `check-compat` | Database release used with an incompatible tool version |
 
-When a provider publishes no checksum (GTDB, one older Kraken 2 index), dblock records the SHA-256 of the first download and says so (`checksum_origin = "first-download"`). It never claims more than it checked.
+When a provider publishes no checksum (GTDB, one older Kraken 2 index), dblock records the SHA-256 of the first download and says so (`checksum_origin = "first-download"`). When a second lockfile uses a copy another lockfile already put in a shared store, it did not check the download itself, so `checksum_origin` stays empty and `provenance` says the origin was not recorded. It never claims more than it checked.
 
 [VALIDATION.md](VALIDATION.md) records real runs against upstream databases and the tools that use them.
 
