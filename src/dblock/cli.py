@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 from dblock import __version__, compat, store
-from dblock.download import DownloadError, download, human_bytes
+from dblock.download import DownloadError, download, hash_file, human_bytes
 from dblock.lockfile import Entry, LockError, Lockfile
 from dblock.recipes import Recipe, RecipeError, load_recipes, parse_spec
 
@@ -236,8 +236,21 @@ def _fetch_one(args, lock: Lockfile, recipes: dict[str, Recipe], root: Path, ent
     upstream_algo, _, upstream_hex = entry.upstream_checksum.partition(":")
     if upstream_algo == "md5":
         algorithms.append("md5")
-    used, digests = download(entry.urls, archive, expected_size=size, quiet=args.quiet, algorithms=tuple(algorithms))
-    _log(args, f"  downloaded from {used}")
+    reused = bool(size) and archive.exists()
+    if reused:
+        # A complete archive left by an earlier fetch (killed while unpacking, or --keep-archive).
+        have = archive.stat().st_size
+        if have != size:
+            bad = _quarantine(archive)
+            print(f"  PROBLEM: the archive already in the store has {have} bytes, expected {size}. "
+                  f"Kept as {bad.name}", file=sys.stderr)
+            return 1
+        _log(args, f"  using the complete archive already in the store: {archive}")
+        digests = hash_file(archive, tuple(algorithms), "" if args.quiet else "  hashing archive")
+    else:
+        used, digests = download(entry.urls, archive, expected_size=size, quiet=args.quiet,
+                                 algorithms=tuple(algorithms))
+        _log(args, f"  downloaded from {used}")
     if upstream_hex and digests[upstream_algo] != upstream_hex.lower():
         bad = _quarantine(archive)
         print(f"  PROBLEM: {upstream_algo} mismatch: upstream says {upstream_hex}, got {digests[upstream_algo]}. "
@@ -245,9 +258,10 @@ def _fetch_one(args, lock: Lockfile, recipes: dict[str, Recipe], root: Path, ent
         return 1
     if entry.archive_sha256 and digests["sha256"] != entry.archive_sha256:
         bad = _quarantine(archive)
-        print(f"  PROBLEM: the file served now differs from the locked archive "
+        what = "the archive already in the store" if reused else "the file served now"
+        print(f"  PROBLEM: {what} differs from the locked archive "
               f"(locked sha256 {entry.archive_sha256}, got {digests['sha256']}). "
-              f"Upstream may have replaced it. Kept as {bad.name}", file=sys.stderr)
+              f"{'' if reused else 'Upstream may have replaced it. '}Kept as {bad.name}", file=sys.stderr)
         return 1
     origin = "upstream-verified" if upstream_hex else "first-download"
     _log(args, "  checksum: " + ("matches upstream " + upstream_algo if upstream_hex
@@ -294,7 +308,8 @@ def _enough_space(args, root: Path, archive: Path, size: int, unpacked: int) -> 
         _log(args, "  archive size unknown; free-space check skipped")
         return True
     part = archive.with_name(archive.name + ".part")
-    to_download = max(size - (part.stat().st_size if part.exists() else 0), 0)
+    have = archive.stat().st_size if archive.exists() else part.stat().st_size if part.exists() else 0
+    to_download = max(size - have, 0)
     to_unpack = unpacked or size
     free = _free_bytes(root)
     if free >= to_download + to_unpack:

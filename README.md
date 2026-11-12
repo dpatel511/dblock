@@ -65,6 +65,8 @@ Databases are stored in `$DBLOCK_STORE` (default `~/.dblock/store`), one folder 
 
 Before downloading, `fetch` checks the store has room for the rest of the download plus the unpacked copy (the archive is removed afterwards). Where a recipe has no measured `unpacked_size`, it assumes the unpacked data is at least as large as the archive and says so. `fetch --no-space-check` skips the check, for example where reported free space does not match a quota.
 
+If a complete archive is already in `<store>/.downloads/` (kept with `--keep-archive`, or left by a fetch stopped while unpacking), `fetch` uses it instead of downloading again, with the same size and checksum checks; this includes `fetch --force`. An archive of the wrong size is kept as `.bad` and reported. Delete the archive to download it afresh.
+
 On a shared store, two `fetch` runs never work on the same database or archive at once: the second reports that another dblock process is fetching it and exits 1; run it again when the first has finished. Locks are operating-system file locks in `<store>/.locks/`, released automatically if a process dies. On network filesystems (e.g. NFS) they are only as reliable as the server's lock support.
 
 ## What gets checked
