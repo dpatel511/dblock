@@ -16,7 +16,7 @@ The first four rows are problems users have reported in the tools' issue tracker
 | A blocked or truncated download is saved as the database, e.g. an HTML "403 Forbidden" page from Zenodo ([bakta#419](https://github.com/oschwengers/bakta/issues/419)) | `fetch` refuses an error response or a file of the wrong size before saving it, checks the provider's checksum, and never installs a bad download (a checksum mismatch is kept as `.bad` for inspection) |
 | A failed 30 GB download starts again from zero ([bakta#374](https://github.com/oschwengers/bakta/issues/374)) | `fetch` resumes from the partial file |
 | The tool and database versions do not match, found only when the job fails ([bakta#406](https://github.com/oschwengers/bakta/issues/406)) | `dblock check-compat` checks before the run, where the recipe states a rule (GTDB-Tk, Bakta) |
-| "Which GTDB release did you use?" The paper names the tool version only, but taxonomy changes between releases | `dblock provenance` prints release, source URL and checksum for the methods section |
+| "Which GTDB release did you use?" The paper names the tool version only, but taxonomy changes between releases | `dblock provenance` prints release, upstream release date, source URL and checksum for the methods section |
 | The same database on another machine, or a year later, is not the same file | `fetch` from the lockfile checks the archive's SHA-256 against the one recorded the first time |
 | On a shared server, two people download the same 100+ GB package at once, or a download fills the disk hours in | One shared store with a lock per database, and a free-space check before downloading |
 
@@ -79,7 +79,7 @@ On a shared store, two `fetch` runs never work on the same database or archive a
 | Tree digest and per-file manifest | `verify` | Files deleted, added or modified after install |
 | Tool-version rules | `check-compat` | Database release used with an incompatible tool version |
 
-When a provider publishes no checksum (GTDB, one older Kraken 2 index), dblock records the SHA-256 of the first download and says so (`checksum_origin = "first-download"`). When a second lockfile uses a copy another lockfile already put in a shared store, it did not check the download itself, so `checksum_origin` stays empty and `provenance` says the origin was not recorded. It never claims more than it checked.
+When a provider publishes no checksum (CARD, one older Kraken 2 index), dblock records the SHA-256 of the first download and says so (`checksum_origin = "first-download"`). When a second lockfile uses a copy another lockfile already put in a shared store, it did not check the download itself, so `checksum_origin` stays empty and `provenance` says the origin was not recorded. It never claims more than it checked.
 
 [VALIDATION.md](VALIDATION.md) records real runs against upstream databases and the tools that use them.
 

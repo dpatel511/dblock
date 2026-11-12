@@ -318,6 +318,30 @@ class TestFetchVerify(Base):
         code, out, _ = self.run_cli("provenance")
         self.assertIn("no upstream checksum published; hash recorded at first download", out)
 
+    def test_provenance_release_date(self):
+        rel, _ = self.simple_db()
+        rel["date"] = "2024-01-02"
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+        code, out, _ = self.run_cli("provenance")
+        self.assertIn("- toy 1 (released 2024-01-02) (not fetched yet", out)
+        self.assertEqual(self.run_cli("fetch")[0], 0)
+        code, out, _ = self.run_cli("provenance")
+        self.assertEqual(code, 0)
+        self.assertIn("- toy 1 (released 2024-01-02), downloaded ", out)
+        code, out, _ = self.run_cli("provenance", "--format", "json")
+        self.assertEqual(json.loads(out)["databases"][0]["release_date"], "2024-01-02")
+
+        # No date in the recipe, or the release is gone from it: nothing is claimed.
+        del rel["date"]
+        self.write_recipe("toy", [rel])
+        code, out, _ = self.run_cli("provenance")
+        self.assertNotIn("released", out)
+        self.write_recipe("toy", [dict(rel, version="2")])
+        code, out, _ = self.run_cli("provenance", "--format", "json")
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(out)["databases"][0]["release_date"], "")
+
     def test_second_lockfile_on_shared_store_has_honest_provenance(self):
         # Project A fetches; project B locks the same release and finds it already in the store.
         rel, _ = self.simple_db()  # has an upstream MD5
