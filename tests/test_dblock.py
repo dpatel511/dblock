@@ -676,6 +676,57 @@ class TestDownloadHashes(Base):
         self.assertNotIn(archive, seen)  # but the archive is not read a second time
         self.assertEqual(Lockfile.load(self.lock).get("toy").archive_sha256, hashlib.sha256(data).hexdigest())
 
+class TestPreferHost(Base):
+    def mirrored(self):
+        rel, data = self.simple_db()
+        mirror = self.serve("/mirror/toy-1.tar.gz", data).replace("127.0.0.1", "localhost")
+        rel["urls"] = rel["urls"] + [mirror]
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+
+    def test_recipe_order_by_default(self):
+        self.mirrored()
+        self.assertEqual(self.run_cli("fetch")[0], 0)
+        self.assertEqual(REQUESTS, ["/toy-1.tar.gz"])
+
+    def test_preferred_host_is_tried_first(self):
+        self.mirrored()
+        code, _, err = self.run_cli("fetch", "--prefer", "LOCALHOST")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(REQUESTS, ["/mirror/toy-1.tar.gz"])
+        self.assertIn("downloaded from http://localhost:", err)
+        self.assertEqual(Lockfile.load(self.lock).get("toy").checksum_origin, "upstream-verified")
+
+    def test_falls_back_when_preferred_host_fails(self):
+        self.mirrored()
+        del FILES["/mirror/toy-1.tar.gz"]  # the preferred mirror answers 404
+        code, _, err = self.run_cli("fetch", "--prefer", "localhost")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(REQUESTS[-1], "/toy-1.tar.gz")
+        self.assertIn("giving up on http://localhost:", err)
+
+    def test_unknown_preferred_host_keeps_recipe_order(self):
+        self.mirrored()
+        code, _, err = self.run_cli("fetch", "--prefer", "example.org")
+        self.assertEqual(code, 0, err)
+        self.assertIn("no URL on example.org for this database; using the recipe's order", err)
+        self.assertEqual(REQUESTS, ["/toy-1.tar.gz"])
+
+    def test_prefer_rejects_urls(self):
+        self.mirrored()
+        code, out, err = self.run_cli("fetch", "--prefer", "https://localhost/")
+        self.assertEqual(code, 2)
+        self.assertEqual(out, "")
+        self.assertIn("--prefer takes a host name", err)
+        self.assertEqual(REQUESTS, [])
+
+    def test_order_of_several_hosts(self):
+        urls = ["https://a.org/x", "https://b.org/x", "https://c.org/x", "https://b.org/y"]
+        self.assertEqual(cli._preferred_first(urls, ["c.org", "b.org"]),
+                         ["https://c.org/x", "https://b.org/x", "https://b.org/y", "https://a.org/x"])
+        self.assertEqual(cli._preferred_first(urls, []), urls)
+
+
 class TestStoreLock(Base):
     def test_held_lock_blocks_fetch(self):
         rel, _ = self.simple_db()
