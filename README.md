@@ -113,7 +113,7 @@ The store location is machine-specific and deliberately not in the lockfile.
 
 | Name | Releases | Upstream checksum | Tool-version rules |
 |---|---|---|---|
-| `gtdbtk` | r232, r226, r220 | none published | from GTDB-Tk docs |
+| `gtdbtk` | r232, r226, r220 | MD5 | from GTDB-Tk docs |
 | `kraken2` | standard-8gb, pluspf, viral (2026-10-22, 2024-09-04) | MD5 (except standard-8gb-20240904) | none stated |
 | `checkm2` | 3 (Zenodo) | MD5 | none stated |
 | `bakta` | 6.0, 6.0-light (Zenodo) | MD5 | from `db-versions.json` |
