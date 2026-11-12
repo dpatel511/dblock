@@ -475,9 +475,14 @@ def cmd_provenance(args) -> int:
     rows = []
     for entry in lock.select(None):
         recipe = recipes.get(entry.name)
+        try:
+            release_date = recipe.release(entry.release).date if recipe else ""
+        except RecipeError:  # the recipe no longer lists this release
+            release_date = ""
         rows.append({
             "name": entry.name,
             "release": entry.release,
+            "release_date": release_date,
             "source": entry.urls[0] if entry.urls else "",
             "archive_sha256": entry.archive_sha256,
             "checksum_origin": entry.checksum_origin,
@@ -490,8 +495,9 @@ def cmd_provenance(args) -> int:
         return OK
     print("Reference databases (pinned with dblock {}):".format(__version__))
     for row in rows:
+        released = f" (released {row['release_date']})" if row["release_date"] else ""
         if not row["archive_sha256"]:
-            print(f"- {row['name']} {row['release']} (not fetched yet; no checksum recorded)")
+            print(f"- {row['name']} {row['release']}{released} (not fetched yet; no checksum recorded)")
             continue
         origin = {
             "upstream-verified": "verified against upstream checksum",
@@ -499,7 +505,7 @@ def cmd_provenance(args) -> int:
         }.get(row["checksum_origin"],
               "checksum origin not recorded: this copy was already in the store when this lockfile was fetched")
         when = "downloaded" if row["checksum_origin"] else "recorded"
-        print(f"- {row['name']} {row['release']}, {when} {row['fetched_at']} from {row['source']} "
+        print(f"- {row['name']} {row['release']}{released}, {when} {row['fetched_at']} from {row['source']} "
               f"(archive SHA-256 {row['archive_sha256'][:16]}..., {origin}).")
         if row["citation"]:
             print(f"  Cite: {row['citation']}")
