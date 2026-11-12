@@ -6,7 +6,8 @@ version_command = ["gtdbtk", "--version"]
 tool_env = "GTDBTK_DATA_PATH"
 citation = "Chaumeil P-A et al. (2022) GTDB-Tk v2. Bioinformatics 38(23):5315-5316"
 notes = [
-  "GTDB does not publish checksums for these packages; dblock records the SHA-256 at first download.",
+  "MD5s are from GTDB's MD5SUM.txt for each release (data.gtdb.ecogenomic.org and the data.ace.uq.edu.au mirror give the same values) and match the GTDB-Tk installation docs; checked 2026-11-12. dblock has not downloaded these archives to confirm them; fetch checks them.",
+  "Lockfiles that pinned a release before these MD5s were added (dblock 0.3.1 and earlier) carry no upstream checksum; they are still checked against the SHA-256 recorded at their first download.",
   "Compatibility ranges are from the GTDB-Tk installation docs.",
   "GTDB-Tk reads the release folder from GTDBTK_DATA_PATH (config/common.py, checked against GTDB-Tk 2.8.0 source, 2026-11-10). Use `dblock env` or `dblock path gtdbtk --tool`.",
 ]
@@ -16,6 +17,7 @@ version = "r232"
 date = "2026-04-13"
 filename = "gtdbtk_r232_data.tar.gz"
 format = "tar.gz"
+checksum = "md5:25a59e0352b1fd150c589f56559767d4"
 size = 60806405195
 tool_versions = ">=2.7.0"
 layout = ["release232/", "release232/skani/database/sketches.db"]
@@ -30,6 +32,7 @@ version = "r226"
 date = "2025-04-11"
 filename = "gtdbtk_r226_data.tar.gz"
 format = "tar.gz"
+checksum = "md5:24b476ea5a4ef30519d461e56cc4a27f"
 size = 141442235198
 tool_versions = ">=2.4.1,<=2.6.1"
 layout = ["release226/", "release226/masks/"]
@@ -44,6 +47,7 @@ version = "r220"
 date = "2024-04-16"
 filename = "gtdbtk_r220_data.tar.gz"
 format = "tar.gz"
+checksum = "md5:5aafa1b9c27ceda003d75adf238ed9e0"
 size = 108491169765
 tool_versions = ">=2.4.0,<=2.6.1"
 layout = ["release220/", "release220/skani/"]
