@@ -44,6 +44,9 @@ dblock verify --full                 # re-hash every file
 dblock check-compat                  # are installed tools compatible with these releases?
 dblock check-compat --strict         # for CI: also fail on NO-RULE, TOOL-NOT-FOUND, UNKNOWN-VERSION
 dblock provenance                    # text for a methods section (or --format json)
+dblock diff --against other.lock    # releases that differ from another lockfile; exit 1 if the same
+                                     # release was fetched as different copies
+dblock diff gtdbtk r226 r232        # files added, removed or changed between two installed releases
 
 eval "$(dblock env)"                 # export GTDBTK_DATA_PATH, CHECKM2DB, ... for the locked databases
 dblock path checkm2 --tool           # just the path the tool expects (here the .dmnd file)

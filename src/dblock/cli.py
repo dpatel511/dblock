@@ -95,10 +95,12 @@ def build_parser() -> argparse.ArgumentParser:
     p = cmd("provenance", cmd_provenance, "print exact database provenance for a methods section or report")
     p.add_argument("--format", choices=("text", "json"), default="text")
 
-    p = cmd("diff", cmd_diff, "compare the files of two installed releases of one database")
-    p.add_argument("name")
-    p.add_argument("release_a")
-    p.add_argument("release_b")
+    p = cmd("diff", cmd_diff, "compare the files of two installed releases of one database, "
+                              "or (with --against) this lockfile with another")
+    p.add_argument("name", nargs="?")
+    p.add_argument("release_a", nargs="?")
+    p.add_argument("release_b", nargs="?")
+    p.add_argument("--against", metavar="LOCKFILE", help="compare the lockfile (--lock) with this one")
     p.add_argument("--limit", type=int, default=20, help="paths to list per category (default 20)")
     return parser
 
@@ -513,6 +515,13 @@ def cmd_provenance(args) -> int:
 
 
 def cmd_diff(args) -> int:
+    given = [x for x in (args.name, args.release_a, args.release_b) if x is not None]
+    if not ((args.against and not given) or (not args.against and len(given) == 3)):
+        print("error: use `dblock diff NAME RELEASE_A RELEASE_B` or `dblock diff --against LOCKFILE`",
+              file=sys.stderr)
+        return ERROR
+    if args.against:
+        return _diff_lockfiles(Lockfile.load(args.lock), Lockfile.load(args.against))
     root = _store(args)
     manifests = []
     for release in (args.release_a, args.release_b):
@@ -527,6 +536,36 @@ def cmd_diff(args) -> int:
         if len(items) > args.limit:
             print(f"  {label:<8} ... {len(items) - args.limit} more")
     return OK
+
+
+def _diff_lockfiles(a: Lockfile, b: Lockfile) -> int:
+    """Compare which releases two lockfiles pin and, where both fetched them, whether the copies match.
+
+    Exit 1 only when the same release has different copies; other differences are not problems.
+    """
+    print(f"{a.path} -> {b.path}")
+    counts = dict.fromkeys(("changed release", "only in first", "only in second", "different copies", "same release"), 0)
+    for name in sorted(set(a.entries) | set(b.entries)):
+        x, y = a.entries.get(name), b.entries.get(name)
+        if y is None:
+            kind, text = "only in first", f"only in {a.path.name} ({x.release})"
+        elif x is None:
+            kind, text = "only in second", f"only in {b.path.name} ({y.release})"
+        elif x.release != y.release:
+            kind, text = "changed release", f"{x.release} -> {y.release}"
+        else:
+            differs = [label for label, u, v in (("archive SHA-256", x.archive_sha256, y.archive_sha256),
+                                                 ("tree digest", x.tree_digest, y.tree_digest))
+                       if u and v and u != v]
+            if differs:
+                kind, text = "different copies", f"{x.release}, but the fetched copies differ ({', '.join(differs)})"
+            else:
+                unfetched = " (not fetched in both, so copies not compared)" if not (x.fetched and y.fetched) else ""
+                kind, text = "same release", f"{x.release}{unfetched}"
+        counts[kind] += 1
+        print(f"  {name}: {text}")
+    print("  " + ", ".join(f"{n} {k}" for k, n in counts.items()))
+    return PROBLEMS if counts["different copies"] else OK
 
 
 if __name__ == "__main__":

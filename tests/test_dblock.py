@@ -486,6 +486,51 @@ class TestFetchVerify(Base):
         self.assertEqual(code, 0)
         self.assertIn("1 added, 1 removed, 1 changed", out)
 
+    def test_diff_against_lockfile(self):
+        rel1, _ = self.simple_db(version="1")
+        rel2, _ = self.simple_db(version="2")
+        other, _ = self.simple_db(name="other")
+        self.write_recipe("toy", [rel2, rel1])
+        self.write_recipe("other", [other])
+        first = self.lock
+        self.run_cli("add", "toy@1", "other")
+        second = self.lock = self.tmp / "second.lock"
+        self.run_cli("add", "toy@2")
+        self.lock = first
+        code, out, _ = self.run_cli("diff", "--against", str(second))
+        self.assertEqual(code, 0)
+        self.assertIn("  other: only in dblock.lock (1)", out)
+        self.assertIn("  toy: 1 -> 2", out)
+        self.assertIn("1 changed release, 1 only in first, 0 only in second, 0 different copies, 0 same release", out)
+        self.assertTrue(out.isascii(), out)
+
+    def test_diff_against_lockfile_finds_different_copies(self):
+        rel, _ = self.simple_db(checksum=False)
+        self.write_recipe("toy", [rel])
+        first = self.lock
+        self.run_cli("add", "toy")
+        self.assertEqual(self.run_cli("fetch")[0], 0)
+        second = self.tmp / "second.lock"
+        shutil.copy(first, second)
+        code, out, _ = self.run_cli("diff", "--against", str(second))
+        self.assertEqual(code, 0)
+        self.assertIn("  toy: 1" + chr(10), out)
+        self.assertIn("1 same release", out)
+
+        text = second.read_text(encoding="utf-8")
+        locked = Lockfile.load(first).get("toy").archive_sha256
+        second.write_text(text.replace(locked, "0" * 64), encoding="utf-8")
+        code, out, _ = self.run_cli("diff", "--against", str(second))
+        self.assertEqual(code, 1)
+        self.assertIn("toy: 1, but the fetched copies differ (archive SHA-256)", out)
+
+    def test_diff_usage_errors(self):
+        for argv in (("diff",), ("diff", "toy", "1"), ("diff", "toy", "1", "2", "--against", "x.lock")):
+            code, out, err = self.run_cli(*argv)
+            self.assertEqual(code, 2, argv)
+            self.assertEqual(out, "")
+            self.assertIn("dblock diff --against LOCKFILE", err)
+
     def test_text_output_is_ascii(self):
         # Redirected stdout on Windows uses the ANSI code page, so non-ASCII
         # characters would be written in the wrong encoding (or fail).
