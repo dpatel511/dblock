@@ -8,6 +8,7 @@ import io
 import json
 import os
 import shlex
+import shutil
 import tarfile
 import tempfile
 import threading
@@ -23,10 +24,12 @@ from dblock.recipes import RecipeError, load_recipes, parse_spec
 FILES: dict[str, bytes] = {}  # url path -> bytes served
 NO_RANGE: set[str] = set()  # url paths whose server ignores Range and always sends the whole file
 TRUNCATE: dict[str, int] = {}  # url path -> bytes to send on the next request before dropping the connection
+REQUESTS: list[str] = []  # url paths requested, in order
 
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802
+        REQUESTS.append(self.path)
         body = FILES.get(self.path)
         if body is None:
             self.send_error(404)
@@ -87,6 +90,7 @@ class Base(unittest.TestCase):
         FILES.clear()
         NO_RANGE.clear()
         TRUNCATE.clear()
+        REQUESTS.clear()
         self.tmp = Path(tempfile.mkdtemp())
         self.recipes = self.tmp / "recipes"
         self.recipes.mkdir()
@@ -234,6 +238,63 @@ class TestFetchVerify(Base):
         self.assertEqual(code, 1)
         self.assertIn("missing", out)
         self.assertIn("unexpected", out)
+
+    def test_complete_archive_is_reused(self):
+        rel, _ = self.simple_db()
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+        self.assertEqual(self.run_cli("fetch", "--keep-archive")[0], 0)
+        shutil.rmtree(store.install_dir(self.store_dir, "toy", "1"))  # e.g. killed while unpacking
+        code, _, err = self.run_cli("fetch")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(REQUESTS, ["/toy-1.tar.gz"])  # downloaded once
+        self.assertIn("using the complete archive already in the store", err)
+        self.assertEqual(self.run_cli("verify", "--full")[0], 0)
+
+    def test_reused_archive_checksum_mismatch(self):
+        rel, data = self.simple_db()
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+        archive = self.store_dir / ".downloads" / "toy-1.tar.gz"
+        archive.parent.mkdir(parents=True)
+        archive.write_bytes(bytes(len(data)))  # right size, wrong content
+        code, _, err = self.run_cli("fetch")
+        self.assertEqual(code, 1)
+        self.assertIn("md5 mismatch", err)
+        self.assertEqual(REQUESTS, [])
+        self.assertTrue((self.store_dir / ".downloads" / "toy-1.tar.gz.bad").exists())
+        self.assertFalse(Lockfile.load(self.lock).get("toy").fetched)
+
+    def test_reused_archive_differs_from_lock(self):
+        rel, data = self.simple_db(checksum=False)
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+        self.assertEqual(self.run_cli("fetch", "--keep-archive")[0], 0)
+        shutil.rmtree(store.install_dir(self.store_dir, "toy", "1"))
+        archive = self.store_dir / ".downloads" / "toy-1.tar.gz"
+        archive.write_bytes(bytes(len(data)))
+        code, _, err = self.run_cli("fetch")
+        self.assertEqual(code, 1)
+        self.assertIn("the archive already in the store differs from the locked archive", err)
+        self.assertNotIn("Upstream may have replaced it", err)
+        self.assertEqual(REQUESTS, ["/toy-1.tar.gz"])
+        self.assertTrue((self.store_dir / ".downloads" / "toy-1.tar.gz.bad").exists())
+
+    def test_reused_archive_wrong_size(self):
+        rel, data = self.simple_db()
+        self.write_recipe("toy", [rel])
+        self.run_cli("add", "toy")
+        archive = self.store_dir / ".downloads" / "toy-1.tar.gz"
+        archive.parent.mkdir(parents=True)
+        archive.write_bytes(data[:-1])
+        code, _, err = self.run_cli("fetch")
+        self.assertEqual(code, 1)
+        self.assertIn(f"has {len(data) - 1} bytes, expected {len(data)}", err)
+        self.assertEqual(REQUESTS, [])
+        self.assertTrue((self.store_dir / ".downloads" / "toy-1.tar.gz.bad").exists())
+        code, _, err = self.run_cli("fetch")  # the next fetch downloads afresh
+        self.assertEqual(code, 0, err)
+        self.assertEqual(REQUESTS, ["/toy-1.tar.gz"])
 
     def test_upstream_checksum_mismatch(self):
         rel, _ = self.simple_db()
@@ -629,6 +690,16 @@ class TestFreeSpace(Base):
         self.assertEqual(code, 1)
         self.assertIn("not enough free space", err)
         self.assertNotIn("at least", err)
+
+    def test_complete_archive_needs_no_download_space(self):
+        size = self.toy()
+        archive = self.store_dir / ".downloads" / "toy-1.tar.gz"
+        archive.parent.mkdir(parents=True)
+        archive.write_bytes(FILES["/toy-1.tar.gz"])
+        self.free = size  # room to unpack only
+        code, _, err = self.run_cli("fetch")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(REQUESTS, [])
 
     def test_partial_download_counts_as_already_used(self):
         size = self.toy()
