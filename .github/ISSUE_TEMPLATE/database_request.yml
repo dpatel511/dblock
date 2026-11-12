@@ -1,0 +1,50 @@
+name: Database request
+description: Ask for a reference database that dblock does not have yet.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        dblock only uses facts from the provider (download URL, size, published checksum, the tool's own docs or code), so links to those help most. dblock downloads and checks databases; it does not build them, so a database whose installer must index or build files after downloading may not fit.
+  - type: input
+    id: database
+    attributes:
+      label: Database and release
+      placeholder: eggNOG 5.0.2
+    validations:
+      required: true
+  - type: input
+    id: tool
+    attributes:
+      label: Tool that uses it, and the version you run
+      placeholder: eggNOG-mapper 2.1.12
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Official download location
+      description: Link to the provider's download page or the file itself, and any mirror the provider documents.
+    validations:
+      required: true
+  - type: textarea
+    id: checksum
+    attributes:
+      label: Published checksum (if any)
+      description: Where the provider publishes an MD5 or SHA-256 for the file, if they do.
+    validations:
+      required: false
+  - type: textarea
+    id: setup
+    attributes:
+      label: How the tool finds the database
+      description: Environment variable or command-line option, and whether the tool's installer does anything after downloading (unpack only, or build an index).
+    validations:
+      required: false
+  - type: textarea
+    id: why
+    attributes:
+      label: Why you need it
+      description: Optional. What you use it for, and how you install it today.
+    validations:
+      required: false
