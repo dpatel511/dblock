@@ -1,0 +1,68 @@
+name: Bug report
+description: A dblock command did something wrong or confusing.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying dblock. Confusing output counts as a bug too.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command and full output
+      description: The exact command(s) you ran and everything they printed (stdout and stderr).
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: dblock version
+      description: Output of `dblock --version`.
+      placeholder: dblock 0.3.1
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and Python version
+      placeholder: Ubuntu 24.04, Python 3.12
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How dblock was installed
+      options:
+        - pip (PyPI)
+        - pip inside a conda environment
+        - from source
+        - other
+    validations:
+      required: true
+  - type: dropdown
+    id: store
+    attributes:
+      label: Where the store is
+      description: The folder set by `--store` or `DBLOCK_STORE`.
+      options:
+        - local disk
+        - network or cluster filesystem (NFS, Lustre, GPFS, ...)
+        - not sure
+    validations:
+      required: false
+  - type: textarea
+    id: lockfile
+    attributes:
+      label: dblock.lock (optional)
+      description: The relevant part of your lockfile, if the problem involves a specific database.
+      render: toml
+    validations:
+      required: false
