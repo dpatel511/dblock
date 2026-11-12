@@ -9,6 +9,7 @@ import os
 import shlex
 import shutil
 import sys
+import urllib.parse
 from pathlib import Path
 
 from dblock import __version__, compat, store
@@ -72,6 +73,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--force", action="store_true", help="re-download even if already installed")
     p.add_argument("--no-space-check", action="store_true",
                    help="skip the free-space check (e.g. where reported free space does not match a quota)")
+    p.add_argument("--prefer", metavar="HOST", action="append", default=[],
+                   help="try URLs on this host first (repeatable), e.g. --prefer data.ace.uq.edu.au")
 
     p = cmd("verify", cmd_verify, "check installed files against the lockfile (fast: names and sizes)")
     p.add_argument("names", nargs="*")
@@ -186,6 +189,10 @@ def cmd_remove(args) -> int:
 
 
 def cmd_fetch(args) -> int:
+    bad_hosts = [h for h in args.prefer if not h or "/" in h]
+    if bad_hosts:
+        print(f"error: --prefer takes a host name such as data.ace.uq.edu.au, not {bad_hosts[0]!r}", file=sys.stderr)
+        return ERROR
     lock = Lockfile.load(args.lock)
     recipes = load_recipes(args.recipes)
     root = _store(args)
@@ -248,7 +255,10 @@ def _fetch_one(args, lock: Lockfile, recipes: dict[str, Recipe], root: Path, ent
         _log(args, f"  using the complete archive already in the store: {archive}")
         digests = hash_file(archive, tuple(algorithms), "" if args.quiet else "  hashing archive")
     else:
-        used, digests = download(entry.urls, archive, expected_size=size, quiet=args.quiet,
+        urls = _preferred_first(entry.urls, args.prefer)
+        if args.prefer and urls and _host(urls[0]) not in {h.lower() for h in args.prefer}:
+            _log(args, f"  no URL on {', '.join(args.prefer)} for this database; using the recipe's order")
+        used, digests = download(urls, archive, expected_size=size, quiet=args.quiet,
                                  algorithms=tuple(algorithms))
         _log(args, f"  downloaded from {used}")
     if upstream_hex and digests[upstream_algo] != upstream_hex.lower():
@@ -294,6 +304,16 @@ def _fetch_one(args, lock: Lockfile, recipes: dict[str, Recipe], root: Path, ent
     _log(args, f"  installed {human_bytes(manifest.total_bytes)} in {len(manifest.files)} files at {target}")
     lock.save()
     return 0
+
+
+def _host(url: str) -> str:
+    return (urllib.parse.urlsplit(url).hostname or "").lower()
+
+
+def _preferred_first(urls: list[str], hosts: list[str]) -> list[str]:
+    """URLs on the preferred hosts first (in the order the hosts were given), the rest in recipe order."""
+    rank = {h.lower(): i for i, h in reversed(list(enumerate(hosts)))}
+    return sorted(urls, key=lambda url: rank.get(_host(url), len(hosts)))
 
 
 def _free_bytes(path: Path) -> int:
