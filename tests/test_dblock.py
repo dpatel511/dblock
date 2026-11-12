@@ -137,7 +137,6 @@ class TestRecipesAndSpecs(unittest.TestCase):
             for rel in recipe.releases:
                 if not rel.tool_path:
                     continue
-                self.assertTrue(recipe.tool_env, recipe.name)
                 if rel.tool_path == ".":
                     continue
                 self.assertTrue(any(p.rstrip("/") == rel.tool_path or p.startswith(rel.tool_path + "/")

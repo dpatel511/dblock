@@ -1,0 +1,24 @@
+name = "card"
+description = "CARD (Comprehensive Antibiotic Resistance Database) data for RGI"
+homepage = "https://card.mcmaster.ca/download"
+tool = "rgi"
+citation = "Alcock BP et al. (2023) CARD 2023: expanded curation, support for machine learning, and resistome prediction at the Comprehensive Antibiotic Resistance Database. Nucleic Acids Research 51:D690-D699"
+notes = [
+  "Terms (card.mcmaster.ca/about and the CARD-Download-README.txt in the archive): free for non-commercial research or academic use at academic, government or non-profit institutions; use by any commercial organization requires a written licence from McMaster University.",
+  "CARD publishes no checksum for its downloads; dblock records the SHA-256 at first download.",
+  "Size, date and layout checked 2026-11-12 by downloading the archive and by a real dblock fetch: card.json reports _version 3.3.0 and _timestamp 2024-08-26.",
+  "RGI has no database variable; it is given the file directly: rgi load --card_json \"$(dblock path card --tool)\". `dblock path card` is the folder CoFanPi mounts as /card_db.",
+  "No tool-version rule is stated upstream.",
+]
+
+[[releases]]
+version = "3.3.0"
+date = "2024-08-26"
+filename = "broadstreet-v3.3.0.tar.bz2"
+format = "tar.bz2"
+size = 4008812
+unpacked_size = 44692571
+layout = ["card.json", "protein_fasta_protein_homolog_model.fasta", "aro_index.tsv"]
+tool_path = "card.json"
+urls = ["https://card.mcmaster.ca/download/0/broadstreet-v3.3.0.tar.bz2"]
+note = "CARD data release 3.3.0 (August 2024)"

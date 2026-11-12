@@ -57,6 +57,7 @@ dblock path checkm2 --tool           # just the path the tool expects (here the 
 | `bakta`, `bakta-galaxy-test` | `BAKTA_DB` | the `db` or `db-light` folder |
 | `gunc` | `GUNC_DB` | the `.dmnd` file |
 | `genomad` | `GENOMAD_DB` | the `genomad_db` folder |
+| `card` | none (RGI takes `--card_json`) | `card.json` |
 
 `dblock env` prints POSIX shell syntax. `dblock path NAME` without `--tool` still prints the top-level data folder.
 
@@ -117,10 +118,13 @@ The store location is machine-specific and deliberately not in the lockfile.
 | `bakta-galaxy-test` | 390 KB test database | MD5 | for trying dblock |
 | `gunc` | progenomes_2.1, progenomes_3, gtdb_214, gtdb_95 (Zenodo) | MD5 | none stated |
 | `genomad` | 1.9 (Zenodo, NERSC mirror) | MD5 | from geNomad's `releases.txt` |
+| `card` | 3.3.0 | none published | none stated |
 
 dblock always downloads from the official sources and never re-hosts data.
 
-Not bundled: CheckV and AMRFinderPlus. Their own installers build an index after downloading (`diamond makedb`, `amrfinder_update`), and dblock does not build databases.
+CARD's terms allow free non-commercial academic use only; commercial use needs a licence from McMaster University (see `dblock recipes card`).
+
+Not bundled: CheckV, AMRFinderPlus, antiSMASH and InterProScan. Each needs a build or indexing step after downloading (`diamond makedb`, `amrfinder_update`; antiSMASH indexes its downloaded files; the InterProScan 5.68-100.0 archive has no pressed HMM files, so its `setup.py` must be run), and dblock does not build databases. eggNOG-mapper's data is three separate files, which a recipe cannot describe yet.
 
 ### Add your own recipe
 
