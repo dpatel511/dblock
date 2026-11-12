@@ -478,9 +478,13 @@ def cmd_provenance(args) -> int:
         if not row["archive_sha256"]:
             print(f"- {row['name']} {row['release']} (not fetched yet; no checksum recorded)")
             continue
-        origin = "verified against upstream checksum" if row["checksum_origin"] == "upstream-verified" \
-            else "no upstream checksum published; hash recorded at first download"
-        print(f"- {row['name']} {row['release']}, downloaded {row['fetched_at']} from {row['source']} "
+        origin = {
+            "upstream-verified": "verified against upstream checksum",
+            "first-download": "no upstream checksum published; hash recorded at first download",
+        }.get(row["checksum_origin"],
+              "checksum origin not recorded: this copy was already in the store when this lockfile was fetched")
+        when = "downloaded" if row["checksum_origin"] else "recorded"
+        print(f"- {row['name']} {row['release']}, {when} {row['fetched_at']} from {row['source']} "
               f"(archive SHA-256 {row['archive_sha256'][:16]}..., {origin}).")
         if row["citation"]:
             print(f"  Cite: {row['citation']}")
