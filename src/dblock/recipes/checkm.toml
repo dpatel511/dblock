@@ -1,0 +1,28 @@
+name = "checkm"
+description = "CheckM (v1) reference data: marker-gene HMMs, marker sets and reference genome tree"
+homepage = "https://github.com/Ecogenomics/CheckM/wiki/Installation"
+tool = "checkm"
+version_command = ["checkm", "-h"]
+tool_env = "CHECKM_DATA_PATH"
+citation = "Parks DH et al. (2015) CheckM: assessing the quality of microbial genomes recovered from isolates, single cells, and metagenomes. Genome Research 25:1043-1055"
+notes = [
+  "Both URLs are listed in CheckM's docs (docs/src/installing/reference_data.rst). The MD5 is from the Zenodo record 7401545 (CC BY 4.0).",
+  "Checked 2026-11-14 by streaming the archive from data.ace.uq.edu.au: the MD5 matched Zenodo's; 33 files, 1,495,861,394 bytes unpacked, no links. The archive ships hmms/checkm.hmm.ssi and hmms/phylo.hmm.ssi, so CheckM does not need to index them.",
+  "CheckM reads CHECKM_DATA_PATH before its own DATA_CONFIG (checkm/checkmData.py line 106; docs say `checkm data setRoot` has no effect while it is set). Use `dblock env`.",
+  "This is the only CheckM v1 data release; no tool-version rule is stated upstream. For CheckM2 see the `checkm2` recipe.",
+]
+
+[[releases]]
+version = "2015-01-16"
+date = "2015-01-16"
+filename = "checkm_data_2015_01_16.tar.gz"
+format = "tar.gz"
+size = 288590617
+unpacked_size = 1495861394
+checksum = "md5:631012fa598c43fdeb88c619ad282c4d"
+layout = ["hmms/checkm.hmm", "hmms/phylo.hmm", "pfam/Pfam-A.hmm.dat", "selected_marker_sets.tsv", "taxon_marker_sets.tsv", "genome_tree/"]
+tool_path = "."
+urls = [
+  "https://data.ace.uq.edu.au/public/CheckM_databases/checkm_data_2015_01_16.tar.gz",
+  "https://zenodo.org/api/records/7401545/files/checkm_data_2015_01_16.tar.gz/content",
+]
