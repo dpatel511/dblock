@@ -51,6 +51,18 @@ tool_path = "."
 urls = ["https://genome-idx.s3.amazonaws.com/kraken/k2_viral_20261022.tar.gz"]
 
 [[releases]]
+version = "standard-8gb-20260626"
+date = "2026-06-26"
+filename = "k2_standard_08_GB_20260626.tar.gz"
+format = "tar.gz"
+size = 5946578575
+checksum = "md5:7685f43cce057c2ca18511c925399b72"
+layout = ["hash.k2d", "opts.k2d", "taxo.k2d"]
+tool_path = "."
+urls = ["https://genome-idx.s3.amazonaws.com/kraken/k2_standard_08_GB_20260626.tar.gz"]
+note = "Checked 2026-11-14: listed on the index page; size from the server; MD5 from standard_08_GB_20260626/standard_08_GB.md5, which names this file. The first tar member is hash.k2d at the archive root; the rest of the layout is from the .md5 file list."
+
+[[releases]]
 version = "standard-8gb-20240904"
 date = "2024-09-04"
 filename = "k2_standard_08gb_20240904.tar.gz"
