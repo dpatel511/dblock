@@ -57,6 +57,7 @@ dblock path checkm2 --tool           # just the path the tool expects (here the 
 | `gtdbtk` | `GTDBTK_DATA_PATH` | the `releaseNNN` folder |
 | `kraken2` | `KRAKEN2_DEFAULT_DB` (used when `--db` is not given) | the index folder |
 | `checkm2` | `CHECKM2DB` | `CheckM2_database/uniref100.KO.1.dmnd` |
+| `checkm` | `CHECKM_DATA_PATH` | the data folder |
 | `bakta`, `bakta-galaxy-test` | `BAKTA_DB` | the `db` or `db-light` folder |
 | `gunc` | `GUNC_DB` | the `.dmnd` file |
 | `genomad` | `GENOMAD_DB` | the `genomad_db` folder |
@@ -122,6 +123,7 @@ The store location is machine-specific and deliberately not in the lockfile.
 | `gtdbtk` | r232, r226, r220 | MD5 | from GTDB-Tk docs |
 | `kraken2` | standard-8gb, pluspf, viral (2026-10-22, 2024-09-04); standard-8gb-20260626 | MD5 (except standard-8gb-20240904) | none stated |
 | `checkm2` | 3 (Zenodo) | MD5 | none stated |
+| `checkm` | 2015-01-16 (CheckM v1 data; UQ, Zenodo) | MD5 | none stated |
 | `bakta` | 6.0, 6.0-light (Zenodo) | MD5 | from `db-versions.json` |
 | `bakta-galaxy-test` | 390 KB test database | MD5 | for trying dblock |
 | `gunc` | progenomes_2.1, progenomes_3, gtdb_214, gtdb_95 (Zenodo) | MD5 | none stated |
