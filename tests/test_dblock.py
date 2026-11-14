@@ -135,6 +135,14 @@ class TestRecipesAndSpecs(unittest.TestCase):
         with self.assertRaises(RecipeError):
             load_recipes()["gtdbtk"].release("r1")
 
+    def test_bundled_filenames_are_unique(self):
+        # Downloads are kept in <store>/.downloads/ under this name; two releases must not share it.
+        seen = {}
+        for recipe in load_recipes().values():
+            for rel in recipe.releases:
+                self.assertNotIn(rel.filename, seen, f"{recipe.name}@{rel.version} and {seen.get(rel.filename)}")
+                seen[rel.filename] = f"{recipe.name}@{rel.version}"
+
     def test_bundled_tool_paths_match_layout(self):
         # Every bundled tool_path must be a folder or file the recipe's layout says exists.
         for recipe in load_recipes().values():

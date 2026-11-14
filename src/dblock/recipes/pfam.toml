@@ -1,0 +1,36 @@
+name = "pfam"
+description = "Pfam-A profile HMMs (EBI), as one HMMER flat file for hmmsearch"
+homepage = "https://ftp.ebi.ac.uk/pub/databases/Pfam/releases/"
+tool = "hmmsearch"
+version_command = ["hmmsearch", "-h"]
+citation = "Paysan-Lafosse T et al. (2025) The Pfam protein families database: embracing AI/ML. Nucleic Acids Research 53:D523-D534"
+notes = [
+  "MD5s are from each release's md5_checksums file; sizes from the server; release month from relnotes.txt (Pfam gives month and year only). Checked 2026-11-14.",
+  "Pfam-A.hmm.gz is decompressed to one file. It can be used as is with hmmsearch: hmmsearch \"$(dblock path pfam --tool)\" proteins.faa. hmmscan and pfam_scan.pl need hmmpress first, which writes index files next to it; dblock does not build indexes, and verify would report those files as unexpected.",
+  "The local file name includes the release (e.g. Pfam-A.39.0.hmm) because every release is served as Pfam-A.hmm.gz.",
+  "Licence: CC0 1.0 (relnotes.txt). No tool-version rule is stated upstream.",
+]
+
+[[releases]]
+version = "39.0"
+date = "2026-11"
+filename = "Pfam-A.39.0.hmm.gz"
+format = "gz"
+size = 658389433
+checksum = "md5:743b20dde4c846dfd67ef30913a4c7b3"
+layout = ["Pfam-A.39.0.hmm"]
+tool_path = "Pfam-A.39.0.hmm"
+urls = ["https://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam39.0/Pfam-A.hmm.gz"]
+note = "Pfam 39.0: 53,275 families (relnotes.txt)"
+
+[[releases]]
+version = "38.2"
+date = "2026-06"
+filename = "Pfam-A.38.2.hmm.gz"
+format = "gz"
+size = 418160514
+checksum = "md5:7ab3c4e215d0daaea3004e37c4e24f8a"
+layout = ["Pfam-A.38.2.hmm"]
+tool_path = "Pfam-A.38.2.hmm"
+urls = ["https://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam38.2/Pfam-A.hmm.gz"]
+note = "Pfam 38.2: 30,134 families (relnotes.txt)"
