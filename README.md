@@ -62,6 +62,7 @@ dblock path checkm2 --tool           # just the path the tool expects (here the 
 | `gunc` | `GUNC_DB` | the `.dmnd` file |
 | `genomad` | `GENOMAD_DB` | the `genomad_db` folder |
 | `card` | none (RGI takes `--card_json`) | `card.json` |
+| `pfam` | none (hmmsearch takes the file) | the decompressed `Pfam-A.<release>.hmm` |
 | `phix` | none (Bowtie2 takes `-x PATH/genome`) | the `Bowtie2Index` folder |
 
 `dblock env` prints POSIX shell syntax. `dblock path NAME` without `--tool` still prints the top-level data folder.
@@ -129,6 +130,7 @@ The store location is machine-specific and deliberately not in the lockfile.
 | `gunc` | progenomes_2.1, progenomes_3, gtdb_214, gtdb_95 (Zenodo) | MD5 | none stated |
 | `genomad` | 1.9 (Zenodo, NERSC mirror) | MD5 | from geNomad's `releases.txt` |
 | `card` | 3.3.0 | none published | none stated |
+| `pfam` | 39.0, 38.2 (EBI) | MD5 | none stated |
 | `phix` | Illumina iGenomes RTA build (117 KB) | none published | none stated |
 | `card` | 4.0.1, 3.3.0 | none published | none stated |
 
