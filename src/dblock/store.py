@@ -110,19 +110,32 @@ def unpack(archive: Path, fmt: str, target: Path) -> None:
 
 def _untar(archive: Path, dest: Path) -> None:
     with tarfile.open(archive, "r:*") as tar:
-        if hasattr(tarfile, "data_filter"):
-            try:
-                tar.extractall(dest, filter="data")
-            except tarfile.FilterError as exc:
-                raise StoreError(f"refusing unsafe archive member: {exc}") from exc
-            return
-        for member in tar.getmembers():  # Python < 3.12 fallback
-            _check_member(member.name)
-            if member.issym() or member.islnk():
-                _check_member(str(PurePosixPath(member.name).parent / member.linkname))
-            if member.isdev():
-                raise StoreError(f"refusing device file in archive: {member.name}")
-        tar.extractall(dest)
+        # Where symlinks cannot be created (e.g. Windows without the privilege), tarfile copies the
+        # link target instead, and by default silently skips a link it cannot copy. Raise instead.
+        tar.errorlevel = 2
+        try:
+            if hasattr(tarfile, "data_filter"):
+                try:
+                    tar.extractall(dest, filter="data")
+                except tarfile.FilterError as exc:
+                    raise StoreError(f"refusing unsafe archive member: {exc}") from exc
+            else:
+                for member in tar.getmembers():  # Python < 3.12 fallback
+                    _check_member(member.name)
+                    if member.issym() or member.islnk():
+                        _check_member(str(PurePosixPath(member.name).parent / member.linkname))
+                    if member.isdev():
+                        raise StoreError(f"refusing device file in archive: {member.name}")
+                tar.extractall(dest)
+        except tarfile.ExtractError as exc:
+            raise StoreError(f"{archive.name} could not be unpacked completely on this system ({exc}); "
+                             f"nothing was installed") from exc
+        for member in tar.getmembers():
+            path = dest / member.name
+            if member.issym() and not path.is_symlink() and path.is_dir():
+                # The fallback "copy" of a link to a folder is an empty folder.
+                raise StoreError(f"{member.name} in {archive.name} is a link to a folder, which could not be "
+                                 f"recreated on this system (symbolic links unavailable); nothing was installed")
 
 
 def _unzip(archive: Path, dest: Path) -> None:
