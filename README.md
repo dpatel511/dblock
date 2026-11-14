@@ -60,6 +60,7 @@ dblock path checkm2 --tool           # just the path the tool expects (here the 
 | `bakta`, `bakta-galaxy-test` | `BAKTA_DB` | the `db` or `db-light` folder |
 | `gunc` | `GUNC_DB` | the `.dmnd` file |
 | `genomad` | `GENOMAD_DB` | the `genomad_db` folder |
+| `singlem` | `SINGLEM_METAPACKAGE_PATH` | the `.smpkg.zb` folder |
 | `card` | none (RGI takes `--card_json`) | `card.json` |
 | `phix` | none (Bowtie2 takes `-x PATH/genome`) | the `Bowtie2Index` folder |
 
@@ -126,6 +127,7 @@ The store location is machine-specific and deliberately not in the lockfile.
 | `bakta-galaxy-test` | 390 KB test database | MD5 | for trying dblock |
 | `gunc` | progenomes_2.1, progenomes_3, gtdb_214, gtdb_95 (Zenodo) | MD5 | none stated |
 | `genomad` | 1.9 (Zenodo, NERSC mirror) | MD5 | from geNomad's `releases.txt` |
+| `singlem` | metapackage 6.5.0 (Zenodo) | MD5 | from SingleM's code |
 | `card` | 3.3.0 | none published | none stated |
 | `phix` | Illumina iGenomes RTA build (117 KB) | none published | none stated |
 | `card` | 4.0.1, 3.3.0 | none published | none stated |

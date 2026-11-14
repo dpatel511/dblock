@@ -1,0 +1,26 @@
+name = "singlem"
+description = "SingleM metapackage (GTDB-based marker-gene reference for SingleM pipe and condense)"
+homepage = "https://wwood.github.io/singlem/"
+tool = "singlem"
+version_command = ["singlem", "--version"]
+tool_env = "SINGLEM_METAPACKAGE_PATH"
+citation = "Woodcroft BJ et al. (2026) Comprehensive taxonomic identification of microbial species in metagenomic data using SingleM and Sandpiper. Nature Biotechnology 44:948-953"
+notes = [
+  "From the Zenodo series 10.5281/zenodo.5739611 (DATA_DOI in singlem/metapackage.py). Size and MD5 from the Zenodo API record; checked 2026-11-14 by streaming the archive: MD5 matched, 854 files, 10,388,002,778 bytes unpacked, no links.",
+  "SINGLEM_METAPACKAGE_PATH must point at the .smpkg.zb folder (`dblock path singlem --tool`). SingleM accepts it only if the metapackage version equals its built-in DATA_DEFAULT_VERSION (singlem/metapackage.py, acquire_default_backpack); other metapackages need --metapackage instead.",
+  "Tool-version rule from DATA_DEFAULT_VERSION at each release tag: 6.5.0 for SingleM v0.21.0 to v0.21.4 (5.4.0 for v0.20.3). Releases after v0.21.4 were not checked, so they are not included.",
+]
+
+[[releases]]
+version = "6.5.0"
+date = "2026-05-13"
+filename = "S6.5.0.GTDB_r232.metapackage_20260319.smpkg.zb.tar.gz"
+format = "tar.gz"
+size = 2178636464
+unpacked_size = 10388002778
+checksum = "md5:580f9ae9ae6a0972f15665c7397c6369"
+tool_versions = ">=0.21.0,<=0.21.4"
+layout = ["S6.5.0.GTDB_r232.metapackage_20260319.smpkg.zb/CONTENTS.json", "S6.5.0.GTDB_r232.metapackage_20260319.smpkg.zb/payload_directory/CONTENTS.json"]
+tool_path = "S6.5.0.GTDB_r232.metapackage_20260319.smpkg.zb"
+urls = ["https://zenodo.org/api/records/20150069/files/S6.5.0.GTDB_r232.metapackage_20260319.smpkg.zb.tar.gz/content"]
+note = "Metapackage 6.5.0, GTDB r232 (Zenodo record 20150069, published 2026-05-13)"
