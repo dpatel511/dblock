@@ -1,0 +1,25 @@
+name = "phix"
+description = "PhiX genome with Bowtie2 and BWA indexes (Illumina iGenomes, RTA build), for removing PhiX spike-in reads"
+homepage = "https://support.illumina.com/sequencing/sequencing_software/igenome.html"
+tool = "bowtie2"
+version_command = ["bowtie2", "--version"]
+citation = "Illumina iGenomes: PhiX (Illumina RTA build)"
+notes = [
+  "Checked 2026-11-14 by downloading the archive linked from the Illumina iGenomes page: 117,160 bytes, 52 files (16,837,050 bytes) and 13 relative symlinks under PhiX/Illumina/RTA/.",
+  "Illumina publishes no checksum; dblock records the SHA-256 at first download. The URL has no version in it; the archive's README says the reference sequence of a build does not change.",
+  "The version is the date in the archive's Annotation README (downloaded from Illumina on 2013-03-06); there is no other version label.",
+  "Bowtie2 takes the index basename: bowtie2 -x \"$(dblock path phix --tool)/genome\".",
+  "The archive has links that point to folders or through other links. Where symbolic links cannot be created (Windows without the symlink privilege), fetch stops with an error rather than install it incomplete (dblock 0.5.0 and newer). Fetched on Linux on 2026-11-14: 63 files, verify --full OK.",
+  "No tool-version rule is stated upstream.",
+]
+
+[[releases]]
+version = "rta-2013-03-06"
+date = "2013-03-06"
+filename = "PhiX_Illumina_RTA.tar.gz"
+format = "tar.gz"
+size = 117160
+unpacked_size = 16837050
+layout = ["PhiX/Illumina/RTA/Sequence/Bowtie2Index/genome.1.bt2", "PhiX/Illumina/RTA/Sequence/WholeGenomeFasta/genome.fa"]
+tool_path = "PhiX/Illumina/RTA/Sequence/Bowtie2Index"
+urls = ["https://webdata.illumina.com/downloads/productfiles/igenomes/phix/PhiX_Illumina_RTA.tar.gz"]
