@@ -727,6 +727,73 @@ class TestPreferHost(Base):
         self.assertEqual(cli._preferred_first(urls, []), urls)
 
 
+def make_link_tar(links: dict[str, str]) -> bytes:
+    """toy/d/f.txt and toy/a.txt plus the given symlinks (name -> link target)."""
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        for name in ("toy", "toy/d"):
+            info = tarfile.TarInfo(name)
+            info.type = tarfile.DIRTYPE
+            tar.addfile(info)
+        for name, data in (("toy/a.txt", b"alpha\n"), ("toy/d/f.txt", b"foxtrot\n")):
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+        for name, target in links.items():
+            info = tarfile.TarInfo(name)
+            info.type = tarfile.SYMTYPE
+            info.linkname = target
+            tar.addfile(info)
+    return buf.getvalue()
+
+
+class TestLinksWithoutSymlinkSupport(Base):
+    """Where symlinks cannot be created (e.g. Windows without the privilege), links become copies.
+    A link that cannot be copied faithfully must stop the fetch, not be skipped."""
+
+    def setUp(self):
+        super().setUp()
+        self.real_symlink = os.symlink
+
+        def no_symlink(*args, **kwargs):
+            raise OSError("symbolic links are not available")
+        os.symlink = no_symlink
+
+    def tearDown(self):
+        os.symlink = self.real_symlink
+
+    def fetch(self, links):
+        data = make_link_tar(links)
+        url = self.serve("/toy-1.tar.gz", data)
+        self.write_recipe("toy", [{"version": "1", "urls": [url], "filename": "toy-1.tar.gz",
+                                   "format": "tar.gz", "size": len(data), "layout": ["toy/a.txt"]}])
+        self.run_cli("add", "toy")
+        return self.run_cli("fetch")
+
+    def test_file_link_becomes_copy(self):
+        code, _, err = self.fetch({"toy/b.txt": "a.txt"})
+        self.assertEqual(code, 0, err)
+        copy = store.data_dir(self.store_dir, "toy", "1") / "toy/b.txt"
+        self.assertEqual(copy.read_bytes(), b"alpha\n")
+
+    def test_link_through_another_link_fails(self):
+        code, _, err = self.fetch({"toy/dl": "d", "toy/chained.txt": "dl/f.txt"})
+        self.assertEqual(code, 2)
+        self.assertIn("could not be unpacked completely", err)
+        self.assertIn("unable to resolve link inside archive", err)
+        self.assertFalse(store.install_dir(self.store_dir, "toy", "1").joinpath("manifest.json").exists())
+        self.assertFalse(store.data_dir(self.store_dir, "toy", "1").exists())
+        self.assertTrue((self.store_dir / ".downloads" / "toy-1.tar.gz").exists())  # kept for inspection
+        self.assertFalse(Lockfile.load(self.lock).get("toy").fetched)
+
+    def test_link_to_folder_fails(self):
+        code, _, err = self.fetch({"toy/dl": "d"})
+        self.assertEqual(code, 2)
+        self.assertIn("toy/dl", err)
+        self.assertIn("link to a folder", err)
+        self.assertFalse(store.data_dir(self.store_dir, "toy", "1").exists())
+
+
 class TestStoreLock(Base):
     def test_held_lock_blocks_fetch(self):
         rel, _ = self.simple_db()

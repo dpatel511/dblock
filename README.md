@@ -128,6 +128,7 @@ The store location is machine-specific and deliberately not in the lockfile.
 | `genomad` | 1.9 (Zenodo, NERSC mirror) | MD5 | from geNomad's `releases.txt` |
 | `card` | 3.3.0 | none published | none stated |
 | `phix` | Illumina iGenomes RTA build (117 KB) | none published | none stated |
+| `card` | 4.0.1, 3.3.0 | none published | none stated |
 
 dblock always downloads from the official sources and never re-hosts data.
 
