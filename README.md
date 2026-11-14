@@ -125,7 +125,7 @@ The store location is machine-specific and deliberately not in the lockfile.
 | `bakta-galaxy-test` | 390 KB test database | MD5 | for trying dblock |
 | `gunc` | progenomes_2.1, progenomes_3, gtdb_214, gtdb_95 (Zenodo) | MD5 | none stated |
 | `genomad` | 1.9 (Zenodo, NERSC mirror) | MD5 | from geNomad's `releases.txt` |
-| `card` | 3.3.0 | none published | none stated |
+| `card` | 4.0.1, 3.3.0 | none published | none stated |
 
 dblock always downloads from the official sources and never re-hosts data.
 
