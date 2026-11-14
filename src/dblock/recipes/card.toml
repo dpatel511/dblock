@@ -6,10 +6,23 @@ citation = "Alcock BP et al. (2023) CARD 2023: expanded curation, support for ma
 notes = [
   "Terms (card.mcmaster.ca/about and the CARD-Download-README.txt in the archive): free for non-commercial research or academic use at academic, government or non-profit institutions; use by any commercial organization requires a written licence from McMaster University.",
   "CARD publishes no checksum for its downloads; dblock records the SHA-256 at first download.",
-  "Size, date and layout checked 2026-11-12 by downloading the archive and by a real dblock fetch: card.json reports _version 3.3.0 and _timestamp 2024-08-26.",
-  "RGI has no database variable; it is given the file directly: rgi load --card_json \"$(dblock path card --tool)\". `dblock path card` is the folder CoFanPi mounts as /card_db.",
+  "Size, date and layout checked by downloading each archive: 3.3.0 on 2026-11-12 (card.json _timestamp 2024-08-26), 4.0.1 on 2026-11-14 (card.json _timestamp 2025-05-29).",
+  "4.0.2 is not listed: its card.json has no antibiotic ARO categories, so RGI 6.0.8 leaves the Antibiotic column empty (arpcard/rgi#339, confirmed by CARD and still open on 2026-11-14).",
+  "RGI is given the file directly: rgi load --card_json \"$(dblock path card --tool)\". Its DB_PATH and DATA_PATH variables set where rgi load stores its own loaded copy, not where it reads this download (app/settings.py, RGI 6.0.8). `dblock path card` is the folder CoFanPi mounts as /card_db.",
   "No tool-version rule is stated upstream.",
 ]
+
+[[releases]]
+version = "4.0.1"
+date = "2025-05-29"
+filename = "broadstreet-v4.0.1.tar.bz2"
+format = "tar.bz2"
+size = 4620455
+unpacked_size = 54502950
+layout = ["card.json", "protein_fasta_protein_homolog_model.fasta", "aro_index.tsv"]
+tool_path = "card.json"
+urls = ["https://card.mcmaster.ca/download/0/broadstreet-v4.0.1.tar.bz2"]
+note = "CARD data release 4.0.1 (May 2025)"
 
 [[releases]]
 version = "3.3.0"
